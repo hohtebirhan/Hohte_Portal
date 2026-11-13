@@ -503,9 +503,12 @@
             </label>
             <OptionSelect
               v-model="form.work.occupation_status"
+              v-model:other-model-value="form.work.occupation_status_other"
               :options="optionsList('occupation_status')"
               :placeholder="t('profile.chooseOption')"
-              :allow-other="false"
+              :allow-other="true"
+              :other-label="t('profile.addOther')"
+              :other-placeholder="t('profile.work.occupationStatusOther')"
               :error="fieldError('work.occupation_status')"
             />
           </div>
@@ -684,6 +687,7 @@ const form = reactive({
   },
   work: {
     occupation_status: "",
+    occupation_status_other: "",
     job_title: "",
   },
   skills: {
@@ -787,6 +791,7 @@ const hydrate = () => {
   const work = p.work || {};
   Object.assign(form.work, {
     occupation_status: codeOf(work.occupation_status) || "",
+    occupation_status_other: work.occupation_status_other || "",
     job_title: work.job_title || "",
   });
 
@@ -909,8 +914,13 @@ const workSummary = computed(() => {
         (o) => o.code === form.work.occupation_status,
       )?.label || form.work.occupation_status
     : "";
+  // When status is "other", prefer the typed text in the summary.
+  const statusText =
+    form.work.occupation_status === "other" && form.work.occupation_status_other
+      ? form.work.occupation_status_other
+      : st;
   return (
-    [st, form.work.job_title].filter(Boolean).join(" · ") ||
+    [statusText, form.work.job_title].filter(Boolean).join(" · ") ||
     t("profile.summary.empty")
   );
 });
@@ -1001,6 +1011,7 @@ const spiritualPayload = () => ({
 
 const workPayload = () => ({
   occupation_status: nullIfEmpty(form.work.occupation_status),
+  occupation_status_other: nullIfEmpty(form.work.occupation_status_other),
   job_title: nullIfEmpty(form.work.job_title),
 });
 

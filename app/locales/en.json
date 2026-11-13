@@ -316,7 +316,10 @@
   "work": {
     "occupationStatus": "Occupation status",
     "jobTitle": "Job title",
-    "occupationRequired": "Please choose an occupation status."
+    "occupationRequired": "Please choose an occupation status.",
+    "occupationStatusOther": "Occupation status (type your own)"
+
+
   },
   "skills": {
     "items": "Skills and talents",

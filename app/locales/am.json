@@ -295,7 +295,7 @@
     "houseNumber": "የቤት ቁጥር",
     "region": "ክልል",
     "zipCode": "ፖስታ ቁጥር",
-    "addressLine": "የአድራሻ መስመር",
+    "addressLine": "ቤት ቁጥር",
     "subCityRequired": "እባክዎ ክፍለ ከተማ ይምረጡ (ወይም የራስዎን ይጻፉ)።",
     "ethiopia": "ኢትዮጵያ"
   },
@@ -314,7 +314,8 @@
   "work": {
     "occupationStatus": "የሥራ ሁኔታ",
     "jobTitle": "የሥራ መጠሪያ",
-    "occupationRequired": "እባክዎ የሥራ ሁኔታ ይምረጡ።"
+    "occupationRequired": "እባክዎ የሥራ ሁኔታ ይምረጡ።",
+    "occupationStatusOther": "የሥራ ሁኔታ (የራስዎን ይጻፉ)"
   },
   "skills": {
     "items": "ክህሎቶችና ችሎታዎች",
