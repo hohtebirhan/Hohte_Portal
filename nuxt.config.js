@@ -9,10 +9,15 @@ export default defineNuxtConfig({
   ],
 
   plugins: [
-    "~/plugins/language.client.js"  ],
+    "~/plugins/language.client.js"
+  ],
 
   build: {
-  transpile: ['@vuepic/vue-datepicker', '@hohte/ec-date-picker']
+    transpile: ['@vuepic/vue-datepicker', '@hohte/ec-date-picker']
+  },
+
+  nitro: {
+    moduleSideEffects: ['@hohte/ec-date-picker']
   },
 
   vue: {
