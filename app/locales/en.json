@@ -49,6 +49,8 @@
     "descriptionText3": "different cultural and religious contexts."
   },
   "requestStatus": {
+    "clear": "Clear",
+    "close": "Close",
     "title": "Request Status",
     "tabs": {
       "all": "All",
@@ -87,13 +89,14 @@
       "selectEndDate": "Please select an end date",
       "endDateBeforeStart": "End date cannot be before start date",
       "dateCannotBePast": "Cannot select a date in the past",
-      "dateExceedsSixMonths": "Cannot select a date more than 6 months from today (max: {maxDate})",
+      "dateExceedsSixMonths": "Cannot select a date after {maxDate}",
       "selectStartDateFirst": "Please select a start date first",
-      "rangeExceedsSixMonths": "End date cannot be more than 6 months after start date (max: {maxDate})",
+      "rangeExceedsSixMonths": "A permission can cover at most {days} days (last allowed end date: {maxDate})",
       "notScheduledDay": "This date does not have a scheduled class",
-      "noScheduledDaysInRange": "No scheduled class days in this range"
+      "noScheduledDaysInRange": "No scheduled class days in this range",
+      "selectAtLeastOneDay": "Select at least one day"
     },
-    "dateLimitHint": "You can only select dates within 6 months from today (max: {maxDate})",
+    "dateLimitHint": "You can select dates up to {maxDate}",
     "tooltips": {
       "dateExceedsLimit": "Cannot select date beyond {maxDate} (6 month limit)",
       "endDateBeforeStart": "End date cannot be before start date",
@@ -102,7 +105,7 @@
     "customReason": "Custom Reason",
     "customReasonHint": "Please describe your reason for requesting permission",
     "customReasonPlaceholder": "Enter your custom reason here...",
-    "rangeLimitHint": "Maximum range: 6 calendar months",
+    "rangeLimitHint": "Maximum range: {days} days",
     "scheduledClass": "● Scheduled class",
     "classRunsOn": "Class runs on",
     "onlyScheduledDays": "You can only request permission for scheduled class days",
@@ -110,6 +113,17 @@
     "affectedSessions": "Affected class sessions",
     "totalSessions": "Total sessions",
     "noScheduledDays": "No scheduled class days in this range",
+    "onlyOnDays": "Only on these days",
+    "onlyOnDaysHint": "Untick the days you can still attend.",
+    "weekdays": {
+      "Monday": "Monday",
+      "Tuesday": "Tuesday",
+      "Wednesday": "Wednesday",
+      "Thursday": "Thursday",
+      "Friday": "Friday",
+      "Saturday": "Saturday",
+      "Sunday": "Sunday"
+    },
     "samples": {
       "mezmu": "MezmuT That",
       "kedamay": "Kedamay Course",
@@ -385,5 +399,30 @@
   "reasonUnchanged": "Reason did not change.",
   "alreadyHasPending": "You already have a pending request.",
   "rank": "Rank"
-}
+},
+  "booking": {
+    "title": "Office visit",
+    "explain": "A permission longer than {days} days must be explained in person at the office. Choose a day and time that suits you.",
+    "chooseDay": "Choose a day",
+    "chooseTime": "Choose a time",
+    "seatsLeft": "{count} left",
+    "full": "Full",
+    "loading": "Loading open times...",
+    "loadFailed": "Could not load open times. Please try again.",
+    "noSlots": "There are no open office times right now. Please try again later.",
+    "required": "Please choose when you will come to the office.",
+    "visit": "Office visit",
+    "reschedule": "Reschedule",
+    "rescheduleTitle": "Move your office visit",
+    "current": "Current visit",
+    "confirmReschedule": "Move visit",
+    "saving": "Saving...",
+    "rescheduled": "Your office visit has been moved.",
+    "rescheduleFailed": "Could not move the office visit.",
+    "status": {
+      "booked": "Booked",
+      "attended": "Attended",
+      "no_show": "Missed"
+    }
+  }
 }

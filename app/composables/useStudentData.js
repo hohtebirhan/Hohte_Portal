@@ -183,7 +183,12 @@ export const useStudentData = () => {
         submittedDate: formatDate(request.created_at),
         classDate:
           request.start_date || request.end_date
-            ? `${request.start_date} to ${request.end_date}`
+            ? `${request.start_date} to ${request.end_date}` +
+              (request.days_of_week?.length
+                ? ` (${request.days_of_week
+                    .map((day) => safeT(`requestStatus.weekdays.${day}`, day))
+                    .join(", ")})`
+                : "")
             : "Date not specified",
         reason: request.reason || request.category || "No reason provided",
         approvedBy: null,
@@ -491,6 +496,17 @@ export const useStudentData = () => {
         reason: requestData.reason, // Custom reason text from textarea
       };
 
+      // Only sent when the member limited the range to some class days
+      if (requestData.daysOfWeek?.length) {
+        apiData.days_of_week = requestData.daysOfWeek;
+      }
+
+      // Long-term requests carry the office visit the member booked
+      if (requestData.booking) {
+        apiData.booking_date = requestData.booking.date;
+        apiData.booking_session_id = requestData.booking.session_id;
+      }
+
       // Only add permission_reason_id if it exists and is not null
       if (requestData.reasonId) {
         apiData.permission_reason_id = parseInt(requestData.reasonId);
@@ -510,7 +526,7 @@ export const useStudentData = () => {
     } catch (err) {
       error.value = err.message;
       console.error("Error submitting permission request:", err);
-      return { success: false, error: err.message };
+      return { success: false, error: err.message, errors: err.errors || null };
     } finally {
       isLoading.value = false;
     }

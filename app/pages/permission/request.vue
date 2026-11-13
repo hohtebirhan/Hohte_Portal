@@ -151,7 +151,8 @@
                     </div>
                   </div>
                   <div class="calendar-footer">
-                    <button class="clear-calendar-btn" @click="clearSpecificDate">Clear</button>
+                    <button class="clear-calendar-btn" @click="clearSpecificDate">{{ t('requestStatus.clear') }}</button>
+                        <button class="close-calendar-btn" @click="closeDropdowns">{{ t('requestStatus.close') }}</button>
                   </div>
                 </div>
               </div>
@@ -164,7 +165,7 @@
           <!-- Date Range -->
           <div v-else class="date-range-input">
             <p class="date-hint">{{ t('requestStatus.dateRangeHint') }}</p>
-            <div class="range-hint-text">{{ t('requestStatus.rangeLimitHint') }}</div>
+            <div class="range-hint-text">{{ t('requestStatus.rangeLimitHint', { days: requestLimits.maxDurationDays }) }}</div>
             
             <div class="range-calendars">
               <div class="range-field">
@@ -208,7 +209,8 @@
                         </div>
                       </div>
                       <div class="calendar-footer">
-                        <button class="clear-calendar-btn" @click="clearStartDate">Clear</button>
+                        <button class="clear-calendar-btn" @click="clearStartDate">{{ t('requestStatus.clear') }}</button>
+                        <button class="close-calendar-btn" @click="closeDropdowns">{{ t('requestStatus.close') }}</button>
                       </div>
                     </div>
                   </div>
@@ -257,13 +259,33 @@
                         </div>
                       </div>
                       <div class="calendar-footer">
-                        <button class="clear-calendar-btn" @click="clearEndDate">Clear</button>
+                        <button class="clear-calendar-btn" @click="clearEndDate">{{ t('requestStatus.clear') }}</button>
+                        <button class="close-calendar-btn" @click="closeDropdowns">{{ t('requestStatus.close') }}</button>
                       </div>
                     </div>
                   </div>
                 </div>
                 <span v-if="errors.endDate" class="error-message">{{ errors.endDate }}</span>
               </div>
+            </div>
+
+            <!-- Weekdays: lets a member skip only some class days, e.g. Saturdays for 3 months -->
+            <div v-if="uniqueScheduleDays.length > 1" class="weekday-picker">
+              <div class="range-summary-label">{{ t('requestStatus.onlyOnDays') }}</div>
+              <p class="weekday-hint">{{ t('requestStatus.onlyOnDaysHint') }}</p>
+              <div class="weekday-options">
+                <button
+                  v-for="day in uniqueScheduleDays"
+                  :key="day"
+                  type="button"
+                  class="weekday-option"
+                  :class="{ active: selectedDays.includes(day) }"
+                  @click="toggleDay(day)"
+                >
+                  {{ t(`requestStatus.weekdays.${day}`) }}
+                </button>
+              </div>
+              <span v-if="errors.days" class="error-message">{{ errors.days }}</span>
             </div>
 
             <!-- Range Summary -->
@@ -290,6 +312,17 @@
         </div>
       </div>
 
+      <!-- Long-term requests: book a time to explain the request at the office -->
+      <div v-if="needsBooking" class="booking-section">
+        <div class="field-header">
+          <span class="field-label">{{ t('booking.title') }}</span>
+          <span class="required-asterisk">*</span>
+        </div>
+        <p class="weekday-hint">{{ t('booking.explain', { days: requestLimits.longTermThresholdDays }) }}</p>
+        <OfficeSlotPicker ref="slotPickerRef" v-model="booking" :class-id="formData.course" @update:model-value="clearError('booking')" />
+        <span v-if="errors.booking" class="error-message">{{ errors.booking }}</span>
+      </div>
+
       <div class="submit-section">
         <button class="submit-btn" @click="submitForm" :disabled="isSubmitting">
           {{ isSubmitting ? t('requestStatus.submitting') : t('requestStatus.submit') }}
@@ -311,6 +344,7 @@ import { useToast } from '~/composables/useToast'
 import { useSchool } from '~/composables/useSchool'
 import { apiService } from '~/services/api.service'
 import ToastNotification from '~/components/ToastNotification.vue'
+import OfficeSlotPicker from '~/components/permission/OfficeSlotPicker.vue'
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isToday, isBefore, isAfter, addMonths, subMonths, startOfWeek, endOfWeek, getDate, getMonth, getYear } from 'date-fns'
 
 const { locale, t, setLocale } = useLanguage()
@@ -329,6 +363,7 @@ const { toasts, success, error: showError, removeToast } = useToast()
 const durationType = ref('specific')
 const isSubmitting = ref(false)
 const scheduleDays = ref([])
+const selectedDays = ref([])
 const showSpecificCalendar = ref(false)
 const showStartCalendar = ref(false)
 const showEndCalendar = ref(false)
@@ -356,8 +391,14 @@ const errors = ref({
   reason: '',
   specificDate: '',
   startDate: '',
-  endDate: ''
+  endDate: '',
+  days: '',
+  booking: ''
 })
+
+// The office visit booked for a long-term request: { date, session_id }
+const booking = ref(null)
+const slotPickerRef = ref(null)
 
 // Calendar state
 const currentMonth = ref(new Date())
@@ -388,26 +429,70 @@ const formatDateForDisplay = (dateString) => {
 
 const minDate = ref(getTodayLocal())
 
-// Add 6 calendar months
-const addSixMonths = (dateString) => {
+// Add whole days to a YYYY-MM-DD date
+const addDays = (dateString, days) => {
   if (!dateString) return null
   const date = new Date(dateString)
-  date.setMonth(date.getMonth() + 6)
+  date.setDate(date.getDate() + days)
   const year = date.getFullYear()
   const month = String(date.getMonth() + 1).padStart(2, '0')
   const day = String(date.getDate()).padStart(2, '0')
   return `${year}-${month}-${day}`
 }
 
+// Request limits come from the server (Permission Approval Settings), which
+// also enforces them. 180 days is the server default, used until they load.
+const DEFAULT_LIMIT_DAYS = 180
+const requestLimits = ref({
+  maxStartDate: null,
+  maxDurationDays: DEFAULT_LIMIT_DAYS,
+  longTermThresholdDays: null,
+  bookingRequiredForLongTerm: false
+})
+
+const loadRequestLimits = async (classId) => {
+  try {
+    const query = classId ? `?class_id=${classId}` : ''
+    const response = await apiService.request(`/api/v1/student/permission-requests/limits${query}`)
+
+    if (response && response.max_start_date) {
+      minDate.value = response.min_start_date || minDate.value
+      requestLimits.value = {
+        maxStartDate: response.max_start_date,
+        maxDurationDays: response.max_duration_days || DEFAULT_LIMIT_DAYS,
+        longTermThresholdDays: response.long_term_threshold_days ?? null,
+        bookingRequiredForLongTerm: response.booking_required_for_long_term === true
+      }
+    }
+  } catch (err) {
+    console.error('Could not load permission request limits:', err)
+  }
+}
+
+// A request spanning more days than the class's threshold is long-term; those
+// need an office visit once HR has set office sessions up.
+const requestSpanDays = computed(() => {
+  if (durationType.value !== 'range' || !formData.value.startDate || !formData.value.endDate) return 1
+  const start = new Date(formData.value.startDate)
+  const end = new Date(formData.value.endDate)
+  return Math.round((end - start) / 86400000) + 1
+})
+
+const needsBooking = computed(() => {
+  const threshold = requestLimits.value.longTermThresholdDays
+  return requestLimits.value.bookingRequiredForLongTerm && threshold !== null && requestSpanDays.value > threshold
+})
+
 const maxStartDate = computed(() => {
-  return addSixMonths(minDate.value)
+  return requestLimits.value.maxStartDate || addDays(minDate.value, DEFAULT_LIMIT_DAYS)
 })
 
 const maxEndDate = computed(() => {
+  const lastDayOffset = requestLimits.value.maxDurationDays - 1
   if (durationType.value === 'range' && formData.value.startDate) {
-    return addSixMonths(formData.value.startDate)
+    return addDays(formData.value.startDate, lastDayOffset)
   }
-  return addSixMonths(minDate.value)
+  return addDays(maxStartDate.value, lastDayOffset)
 })
 
 // Format schedule days
@@ -427,6 +512,22 @@ const isScheduledDate = (date) => {
   if (!scheduleDays.value || scheduleDays.value.length === 0) return false
   const dayName = getDayName(date.getDay())
   return scheduleDays.value.includes(dayName)
+}
+
+// Class days in week order, each once (a class can have two schedules on the same day)
+const weekOrder = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+const uniqueScheduleDays = computed(() => weekOrder.filter(day => scheduleDays.value.includes(day)))
+
+// Every class day is selected until the member unticks one
+watch(uniqueScheduleDays, (days) => {
+  selectedDays.value = [...days]
+})
+
+const toggleDay = (day) => {
+  selectedDays.value = selectedDays.value.includes(day)
+    ? selectedDays.value.filter(d => d !== day)
+    : weekOrder.filter(d => d === day || selectedDays.value.includes(d))
+  clearError('days')
 }
 
 // Get calendar days
@@ -457,44 +558,27 @@ const getCalendarDays = (monthDate) => {
 }
 
 // Get range calendar days
-const getRangeCalendarDays = (monthDate, selectedDate) => {
-  const start = startOfWeek(startOfMonth(monthDate), { weekStartsOn: 0 })
-  const end = endOfWeek(endOfMonth(monthDate), { weekStartsOn: 0 })
-  
-  return eachDayOfInterval({ start, end }).map(date => {
+const getRangeCalendarDays = (monthDate, which) => {
+  const calendarStart = startOfWeek(startOfMonth(monthDate), { weekStartsOn: 0 })
+  const calendarEnd = endOfWeek(endOfMonth(monthDate), { weekStartsOn: 0 })
+  const selectedDate = which === 'start' ? formData.value.startDate : formData.value.endDate
+
+  // Start: today .. max days ahead. End: the start date .. start + max duration.
+  const firstAllowed = which === 'end' && formData.value.startDate ? formData.value.startDate : minDate.value
+  const lastAllowed = which === 'end' ? maxEndDate.value : maxStartDate.value
+
+  return eachDayOfInterval({ start: calendarStart, end: calendarEnd }).map(date => {
     const dateStr = format(date, 'yyyy-MM-dd')
-    const isPast = isBefore(date, new Date()) && !isToday(date)
-    const isScheduled = isScheduledDate(date)
-    const isSelected = dateStr === selectedDate
-    
-    let isDisabled = isPast
-    
-    if (selectedDate === formData.value.startDate) {
-      if (isBefore(date, new Date(minDate.value)) || isAfter(date, new Date(maxStartDate.value))) {
-        isDisabled = true
-      }
-    }
-    
-    if (selectedDate === formData.value.endDate) {
-      if (formData.value.startDate) {
-        if (isBefore(date, new Date(formData.value.startDate)) || isAfter(date, new Date(maxEndDate.value))) {
-          isDisabled = true
-        }
-      } else {
-        if (isBefore(date, new Date(minDate.value)) || isAfter(date, new Date(maxStartDate.value))) {
-          isDisabled = true
-        }
-      }
-    }
-    
+    const isPast = dateStr < minDate.value
+
     return {
       date: dateStr,
       day: getDate(date),
       isOtherMonth: !isSameMonth(date, monthDate),
-      isScheduled: isScheduled,
-      isSelected: isSelected,
+      isScheduled: isScheduledDate(date),
+      isSelected: dateStr === selectedDate,
       isPast: isPast,
-      isDisabled: isDisabled,
+      isDisabled: isPast || dateStr < firstAllowed || (lastAllowed && dateStr > lastAllowed),
       fullDate: date
     }
   })
@@ -531,11 +615,11 @@ const endYear = computed(() => {
 })
 
 const startCalendarDays = computed(() => {
-  return getRangeCalendarDays(startMonth.value, formData.value.startDate)
+  return getRangeCalendarDays(startMonth.value, 'start')
 })
 
 const endCalendarDays = computed(() => {
-  return getRangeCalendarDays(endMonth.value, formData.value.endDate)
+  return getRangeCalendarDays(endMonth.value, 'end')
 })
 
 // Toggle calendars - using absolute positioning
@@ -548,6 +632,7 @@ const toggleSpecificCalendar = (event) => {
   const rect = event.currentTarget.getBoundingClientRect()
   const parentRect = event.currentTarget.closest('.date-picker-wrapper').getBoundingClientRect()
   
+  closeDropdowns()
   dropdownStyle.value = {
     position: 'absolute',
     top: '100%',
@@ -565,14 +650,8 @@ const toggleStartCalendar = (event) => {
     return
   }
   
-  dropdownStyle.value = {
-    position: 'absolute',
-    top: '100%',
-    left: '0',
-    width: '100%',
-    zIndex: 9999,
-    marginTop: '4px'
-  }
+  closeDropdowns()
+  startMonth.value = formData.value.startDate ? new Date(formData.value.startDate) : new Date()
   showStartCalendar.value = true
 }
 
@@ -582,14 +661,8 @@ const toggleEndCalendar = (event) => {
     return
   }
   
-  dropdownStyle.value = {
-    position: 'absolute',
-    top: '100%',
-    left: '0',
-    width: '100%',
-    zIndex: 9999,
-    marginTop: '4px'
-  }
+  closeDropdowns()
+  endMonth.value = new Date(formData.value.endDate || formData.value.startDate || minDate.value)
   showEndCalendar.value = true
 }
 
@@ -656,6 +729,8 @@ const selectStartDate = (day) => {
   formData.value.startDate = day.date
   showStartCalendar.value = false
   validateStartDate()
+  endMonth.value = new Date(day.date)
+  showEndCalendar.value = true
 }
 
 const selectEndDate = (day) => {
@@ -677,7 +752,7 @@ const getScheduledDatesInRange = computed(() => {
   let currentDate = new Date(start)
   
   while (currentDate <= end) {
-    if (isScheduledDate(currentDate)) {
+    if (isScheduledDate(currentDate) && selectedDays.value.includes(getDayName(currentDate.getDay()))) {
       dates.push(format(currentDate, 'yyyy-MM-dd'))
     }
     currentDate.setDate(currentDate.getDate() + 1)
@@ -688,6 +763,8 @@ const getScheduledDatesInRange = computed(() => {
 
 // Load schedule for selected class
 const loadClassSchedule = async (classId) => {
+  loadRequestLimits(classId)
+
   try {
     if (!classId) {
       scheduleDays.value = []
@@ -789,7 +866,7 @@ const validateEndDate = () => {
   }
   
   if (maxEndDate.value && formData.value.endDate > maxEndDate.value) {
-    errors.value.endDate = t('requestStatus.errors.rangeExceedsSixMonths', { maxDate: formatDateForDisplay(maxEndDate.value) })
+    errors.value.endDate = t('requestStatus.errors.rangeExceedsSixMonths', { days: requestLimits.value.maxDurationDays, maxDate: formatDateForDisplay(maxEndDate.value) })
     return false
   }
   
@@ -850,10 +927,18 @@ const validateForm = () => {
       isValid = false
     }
     
-    if (formData.value.startDate && formData.value.endDate && getScheduledDatesInRange.value.length === 0) {
+    if (selectedDays.value.length === 0) {
+      errors.value.days = t('requestStatus.errors.selectAtLeastOneDay')
+      isValid = false
+    } else if (formData.value.startDate && formData.value.endDate && getScheduledDatesInRange.value.length === 0) {
       errors.value.startDate = t('requestStatus.errors.noScheduledDaysInRange')
       isValid = false
     }
+  }
+
+  if (needsBooking.value && !booking.value) {
+    errors.value.booking = t('booking.required')
+    isValid = false
   }
 
   return isValid
@@ -885,6 +970,11 @@ const submitForm = async () => {
     durationType: durationType.value,
     startDate: startDate,
     endDate: endDate,
+    // Only sent when some class days were unticked; otherwise the permission covers every class day
+    daysOfWeek: durationType.value === 'range' && selectedDays.value.length < uniqueScheduleDays.value.length
+      ? [...selectedDays.value]
+      : null,
+    booking: needsBooking.value ? booking.value : null,
     reasonId: null
   }
 
@@ -901,6 +991,12 @@ const submitForm = async () => {
         goBack()
       }, 1500)
     } else {
+      if (result.errors?.booking_date) {
+        // The session filled up or closed meanwhile: show fresh times
+        errors.value.booking = result.errors.booking_date[0]
+        booking.value = null
+        slotPickerRef.value?.reload()
+      }
       showError(result.error || t('requestStatus.submissionFailed'), 4000)
     }
   } catch (err) {
@@ -1443,7 +1539,20 @@ onMounted(async () => {
   padding-top: 8px;
   margin-top: 8px;
   border-top: 1px solid #eee;
-  text-align: left;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.close-calendar-btn {
+  padding: 6px 16px;
+  border: none;
+  border-radius: 6px;
+  background: #FFC125;
+  color: #1e3971;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
 }
 
 .clear-calendar-btn {
@@ -1503,6 +1612,53 @@ onMounted(async () => {
   font-size: 14px;
   margin-top: 6px;
   font-weight: 500;
+}
+
+/* Office Booking Styles */
+.booking-section {
+  margin-top: 20px;
+  padding: 12px;
+  background: rgba(255, 193, 37, 0.08);
+  border: 1px solid rgba(255, 193, 37, 0.4);
+  border-radius: 8px;
+}
+
+/* Weekday Picker Styles */
+.weekday-picker {
+  margin-top: 15px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+}
+
+.weekday-hint {
+  color: #b1afaf;
+  font-size: 12px;
+  margin: 0 0 8px;
+}
+
+.weekday-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.weekday-option {
+  padding: 6px 14px;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: transparent;
+  color: #ffffff;
+  font-size: 13px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.weekday-option.active {
+  background: #FFC125;
+  border-color: #FFC125;
+  color: #1e3971;
+  font-weight: 600;
 }
 
 /* Range Summary Styles */
