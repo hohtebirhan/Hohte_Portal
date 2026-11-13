@@ -12,7 +12,7 @@ export default defineNuxtConfig({
     "~/plugins/language.client.js"  ],
 
   build: {
-    transpile: ['@vuepic/vue-datepicker']
+  transpile: ['@vuepic/vue-datepicker', '@hohte/ec-date-picker']
   },
 
   vue: {
