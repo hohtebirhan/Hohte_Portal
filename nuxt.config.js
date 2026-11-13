@@ -8,10 +8,19 @@ export default defineNuxtConfig({
     "@vuepic/vue-datepicker/dist/main.css"
   ],
 
-  plugins: ["~/plugins/language.client.js"],
+  plugins: [
+    "~/plugins/language.client.js",
+    "~/plugins/ec-date-picker.client.js"
+  ],
 
   build: {
     transpile: ['@vuepic/vue-datepicker']
+  },
+
+  vue: {
+    compilerOptions: {
+      isCustomElement: (tag) => tag === 'ec-date-picker',
+    },
   },
 
   app: {
