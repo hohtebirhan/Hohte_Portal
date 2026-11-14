@@ -12,13 +12,23 @@ import { useSchool } from '~/composables/useSchool'
 const { isTelegram } = useTelegram()
 const { initializeSchool, isInitialized, schoolError } = useSchool()
 
+// Force the script to load in the <head>
+useHead({
+  script: [
+    {
+      src: '/ec-date-picker.js',
+      tagPosition: 'head'
+    }
+  ]
+})
+
 onMounted(() => {
   initializeSchool()
-  
+
   if (isTelegram.value) {
     document.documentElement.style.setProperty('--tg-viewport-height', window.innerHeight + 'px')
   }
-  
+
   if (schoolError.value) {
     console.error('School initialization error:', schoolError.value)
   }

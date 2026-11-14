@@ -11,7 +11,6 @@ export default defineNuxtConfig({
   build: {
     transpile: ['@vuepic/vue-datepicker']
   },
-  // KEEP THIS - README says this is required
   vue: {
     compilerOptions: {
       isCustomElement: (tag) => tag === 'ec-date-picker',
