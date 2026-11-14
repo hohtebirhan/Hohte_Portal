@@ -1,8 +1,5 @@
 <template>
   <div>
-    <!-- This forces the script to load natively, bypassing Nuxt and Telegram -->
-    <div v-html="scriptTag" style="display: none;"></div>
-    
     <NuxtLayout>
       <NuxtPage />
     </NuxtLayout>
@@ -10,15 +7,12 @@
 </template>
 
 <script setup>
-import { onMounted, ref } from 'vue'
+import { onMounted } from 'vue'
 import { useTelegram } from '~/composables/useTelegram'
 import { useSchool } from '~/composables/useSchool'
 
 const { isTelegram } = useTelegram()
 const { initializeSchool, isInitialized, schoolError } = useSchool()
-
-// We inject the script tag via v-html so the browser MUST parse it
-const scriptTag = ref('<script src="/ec-date-picker.js"><\/script>')
 
 onMounted(() => {
   initializeSchool()
@@ -30,11 +24,6 @@ onMounted(() => {
   if (schoolError.value) {
     console.error('School initialization error:', schoolError.value)
   }
-  
-  // Check if it loaded after a small delay
-  setTimeout(() => {
-    console.log('REGISTERED?', !!customElements.get('ec-date-picker'))
-  }, 500)
 })
 </script>
 

@@ -23,7 +23,10 @@ export default defineNuxtConfig({
         { name: "viewport", content: "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" },
         { charset: "utf-8" },
       ],
-      script: [{ src: "https://telegram.org/js/telegram-web-app.js" }],
+      script: [
+        { src: "https://telegram.org/js/telegram-web-app.js" },
+        { src: "/ec-date-picker.js" },
+      ],
     },
   },
   routeRules: {
