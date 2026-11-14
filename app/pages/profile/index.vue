@@ -412,48 +412,13 @@
         :footer-error="sectionError.education"
         @save="saveEducation"
       >
-        <div class="field-grid">
-          <div class="field">
-            <label class="field-label">{{
-              t("profile.education.level")
-            }}</label>
-            <OptionSelect
-              v-model="form.education.level"
-              :options="optionsList('education_level')"
-              :placeholder="t('profile.chooseOption')"
-              :allow-other="false"
-            />
-          </div>
-          <div class="field">
-            <label class="field-label">{{
-              t("profile.education.field")
-            }}</label>
-            <OptionSelect
-              v-model="form.education.field"
-              v-model:other-model-value="form.education.field_other"
-              :options="optionsList('education_field')"
-              :placeholder="t('profile.chooseOption')"
-              :other-label="t('profile.addOther')"
-              :other-placeholder="t('profile.education.fieldOther')"
-              :searchable="true"
-              :search-placeholder="t('profile.searchOptions')"
-              :no-results-label="t('profile.noOptionsFound')"
-            />
-          </div>
-          <div class="field">
-            <label class="field-label">{{
-              t("profile.education.school")
-            }}</label>
-            <OptionSelect
-              v-model="form.education.school"
-              v-model:other-model-value="form.education.school_other"
-              :options="optionsList('school')"
-              :placeholder="t('profile.chooseOption')"
-              :other-label="t('profile.addOther')"
-              :other-placeholder="t('profile.education.schoolOther')"
-            />
-          </div>
-        </div>
+        <EducationList
+          :entries="form.education.entries"
+          :level-options="optionsList('education_level')"
+          :field-options="optionsList('education_field')"
+          :school-options="optionsList('school')"
+          :errors="lastValidationErrors || {}"
+        />
       </ProfileSectionCard>
 
       <!-- Spiritual education -->
@@ -636,6 +601,7 @@ import PendingBadge from "~/components/profile/PendingBadge.vue";
 import ImportedBanner from "~/components/profile/ImportedBanner.vue";
 import ChangeRequestsList from "~/components/profile/ChangeRequestsList.vue";
 import DateField from "~/components/profile/DateField.vue";
+import EducationList from "~/components/profile/EducationList.vue";
 
 const { t, locale } = useLanguage();
 const { goBack, goToClassChange } = useNavigation();
@@ -692,11 +658,7 @@ const form = reactive({
     address_line: "",
   },
   education: {
-    level: "",
-    field: "",
-    field_other: "",
-    school: "",
-    school_other: "",
+    entries: [],
   },
   spiritual_education: {
     items: [],
@@ -790,14 +752,25 @@ const hydrate = () => {
     address_line: address.address_line || "",
   });
 
-  const edu = p.education || {};
-  Object.assign(form.education, {
-    level: codeOf(edu.level) || "",
-    field: codeOf(edu.field) || "",
-    field_other: edu.field_other || "",
-    school: codeOf(edu.school) || "",
-    school_other: edu.school_other || "",
-  });
+  // Education is a list (current entry first). Fall back to the old single
+  // `education` object only if the API did not send `educations`.
+  const eduList = Array.isArray(p.educations)
+    ? p.educations
+    : p.education && p.education.level
+      ? [p.education]
+      : [];
+  form.education.entries = eduList.map((e, i) => ({
+    id: e.id,
+    _key: e.id ? `edu-${e.id}` : `edu-legacy-${i}`,
+    level: codeOf(e.level) || "",
+    field: codeOf(e.field) || "",
+    field_other: e.field_other || "",
+    school: codeOf(e.school) || "",
+    school_other: e.school_other || "",
+    is_current: !!e.is_current,
+    start_date: e.start_date || "",
+    end_date: e.end_date || "",
+  }));
 
   const spir = p.spiritual_education || {};
   form.spiritual_education.items = codesOf(spir.items);
@@ -916,12 +889,15 @@ const addressSummary = computed(() => {
 });
 
 const educationSummary = computed(() => {
-  const lvl = form.education.level
-    ? optionsList("education_level").find(
-        (o) => o.code === form.education.level,
-      )?.label || form.education.level
+  const list = form.education.entries;
+  if (!list.length) return t("profile.summary.empty");
+  const main = list.find((e) => e.is_current) || list[0];
+  const lvl = main.level
+    ? optionsList("education_level").find((o) => o.code === main.level)
+        ?.label || main.level
     : "";
-  return lvl || t("profile.summary.empty");
+  const extra = list.length > 1 ? ` (+${list.length - 1})` : "";
+  return (lvl || t("profile.summary.empty")) + extra;
 });
 
 const spiritualSummary = computed(() => {
@@ -1021,13 +997,35 @@ const addressPayload = () => {
   };
 };
 
-const educationPayload = () => ({
-  level: nullIfEmpty(form.education.level),
-  field: nullIfEmpty(form.education.field),
-  field_other: nullIfEmpty(form.education.field_other),
-  school: nullIfEmpty(form.education.school),
-  school_other: nullIfEmpty(form.education.school_other),
-});
+// The API wants the WHOLE list: entries with an id are updated, entries
+// without one are added, entries left out are deleted.
+const educationsPayload = () =>
+  form.education.entries
+    .filter(
+      (e) =>
+        e.id ||
+        e.level ||
+        e.field ||
+        e.field_other ||
+        e.school ||
+        e.school_other ||
+        e.start_date ||
+        e.end_date ||
+        e.is_current,
+    ) // a completely blank new entry is not sent
+    .map((e) => {
+      const item = {};
+      if (e.id) item.id = e.id;
+      item.level = nullIfEmpty(e.level);
+      item.field = nullIfEmpty(e.field);
+      item.field_other = nullIfEmpty(e.field_other);
+      item.school = nullIfEmpty(e.school);
+      item.school_other = nullIfEmpty(e.school_other);
+      item.is_current = !!e.is_current;
+      item.start_date = nullIfEmpty(e.start_date);
+      item.end_date = e.is_current ? null : nullIfEmpty(e.end_date);
+      return item;
+    });
 
 const spiritualPayload = () => ({
   items: [...form.spiritual_education.items],
@@ -1054,11 +1052,12 @@ const runSave = async (
   section,
   payload,
   successKey = "profile.savedSuccess",
+  apiKey = section, // the key sent to the API, e.g. "educations" for the list
 ) => {
   savingSection.value = section;
   sectionError[section] = "";
   try {
-    await saveSection(section, payload);
+    await saveSection(apiKey, payload);
     hydrate();
 
     // If the payload touched review-gated fields, refresh the change requests
@@ -1083,7 +1082,8 @@ const runSave = async (
 const savePersonal = () =>
   runSave("personal", personalPayload(), "profile.savedPending");
 const saveAddress = () => runSave("address", addressPayload());
-const saveEducation = () => runSave("education", educationPayload());
+const saveEducation = () =>
+  runSave("education", educationsPayload(), "profile.savedSuccess", "educations");
 const saveSpiritual = () => runSave("spiritual_education", spiritualPayload());
 const saveWork = () => runSave("work", workPayload());
 const saveSkills = () => runSave("skills", skillsPayload());
