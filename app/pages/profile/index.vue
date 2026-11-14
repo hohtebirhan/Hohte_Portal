@@ -644,11 +644,7 @@
         <p v-else class="dept-empty">{{ t("profile.notSet") }}</p>
         <p class="dept-hint">{{ t("profile.departmentsReadOnly") }}</p>
 
-        <button
-          type="button"
-          class="btn-class-change"
-          @click="goToClassChange"
-        >
+        <button type="button" class="btn-class-change" @click="goToClassChange">
           {{ t("profile.requestDeptChange") }}
         </button>
       </div>
@@ -850,7 +846,8 @@ const hydrate = () => {
     first_name: pendingValueFor("first_name") ?? personal.first_name ?? "",
     middle_name: pendingValueFor("middle_name") ?? personal.middle_name ?? "",
     last_name: pendingValueFor("last_name") ?? personal.last_name ?? "",
-    phone_number: pendingValueFor("phone_number") ?? personal.phone_number ?? "",
+    phone_number:
+      pendingValueFor("phone_number") ?? personal.phone_number ?? "",
     baptismal_name: personal.baptismal_name || "",
     mother_name: personal.mother_name || "",
     birth_date: personal.birth_date || "",
@@ -1537,7 +1534,7 @@ watch(profile, () => {
 }
 /* Slightly smaller picker overall (change 0.85 to taste: 0.8 = smaller, 0.95 = bigger) */
 .date-sheet ec-date-picker {
-  zoom: 0.85;
+  zoom: 0.75;
 }
 /* The calendar sits in the normal flow under the date boxes, so the sheet is
    exactly as tall as its content and the calendar is never wider than the sheet */
