@@ -1495,13 +1495,12 @@ watch(profile, () => {
 }
 .date-sheet {
   width: 100%;
-  max-width: 420px;
-  min-height: min(580px, 92vh);
-  max-height: 92vh;
+  max-width: 380px;
+  max-height: 85vh;
   overflow-x: hidden;
   overflow-y: auto;
   box-sizing: border-box;
-  padding: 14px 12px calc(20px + env(safe-area-inset-bottom, 0px));
+  padding: 12px 12px calc(14px + env(safe-area-inset-bottom, 0px));
   background: #fff;
   color: #1e3971;
   border-radius: 16px 16px 0 0;
@@ -1536,10 +1535,20 @@ watch(profile, () => {
   border-radius: 8px;
   cursor: pointer;
 }
-/* Make the calendar popup exactly as wide as the sheet, never wider */
+/* Slightly smaller picker overall (change 0.85 to taste: 0.8 = smaller, 0.95 = bigger) */
+.date-sheet ec-date-picker {
+  zoom: 0.85;
+}
+/* The calendar sits in the normal flow under the date boxes, so the sheet is
+   exactly as tall as its content and the calendar is never wider than the sheet */
 .date-sheet ec-date-picker::part(popup) {
+  position: static;
   width: 100%;
   max-width: 100%;
+  margin-top: 10px;
+  padding: 0.75rem;
+  box-shadow: none;
+  box-sizing: border-box;
 }
 
 /* Departments (read-only) */
