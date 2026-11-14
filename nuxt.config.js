@@ -24,8 +24,7 @@ export default defineNuxtConfig({
         { charset: "utf-8" },
       ],
       script: [
-        { src: "https://telegram.org/js/telegram-web-app.js" },
-        { src: "https://cdn.jsdelivr.net/gh/Hohite-Birihan-Sunday-School/ec-date-picker@v1.0.1/dist/ec-date-picker.js" }
+        { src: "https://telegram.org/js/telegram-web-app.js" }
       ],
     },
   },
@@ -33,4 +32,4 @@ export default defineNuxtConfig({
     "/home/**": { ssr: false },
     "/**": { ssr: false },
   },
-});
+})
