@@ -12,31 +12,16 @@ import { useSchool } from '~/composables/useSchool'
 const { isTelegram } = useTelegram()
 const { initializeSchool, isInitialized, schoolError } = useSchool()
 
-// THIS is the fix. It forces Nuxt to inject the script into the <head>
-useHead({
-  script: [
-    {
-      src: '/ec-date-picker.js',
-      tagPriority: 'critical'
-    }
-  ]
-})
-
 onMounted(() => {
   initializeSchool()
-
+  
   if (isTelegram.value) {
     document.documentElement.style.setProperty('--tg-viewport-height', window.innerHeight + 'px')
   }
-
+  
   if (schoolError.value) {
     console.error('School initialization error:', schoolError.value)
   }
-
-  // Small delay to ensure the DOM processes the head injection
-  setTimeout(() => {
-    console.log('Check if registered:', !!customElements.get('ec-date-picker'))
-  }, 1000)
 })
 </script>
 

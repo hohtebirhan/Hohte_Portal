@@ -11,6 +11,7 @@ export default defineNuxtConfig({
   build: {
     transpile: ['@vuepic/vue-datepicker']
   },
+  // KEEP THIS - README says this is required
   vue: {
     compilerOptions: {
       isCustomElement: (tag) => tag === 'ec-date-picker',
@@ -23,13 +24,11 @@ export default defineNuxtConfig({
         { name: "viewport", content: "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" },
         { charset: "utf-8" },
       ],
-      script: [
-        { src: "https://telegram.org/js/telegram-web-app.js" }
-      ],
+      script: [{ src: "https://telegram.org/js/telegram-web-app.js" }],
     },
   },
   routeRules: {
     "/home/**": { ssr: false },
     "/**": { ssr: false },
   },
-})
+});
