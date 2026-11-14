@@ -1,28 +1,28 @@
 export default defineNuxtConfig({
-  compatibilityDate: '2026-10-07',
+  compatibilityDate: "2026-10-07",
 
   devtools: { enabled: true },
 
-  css: [
-    "~/assets/css/main.css",
-    "@vuepic/vue-datepicker/dist/main.css"
-  ],
+  css: ["~/assets/css/main.css", "@vuepic/vue-datepicker/dist/main.css"],
 
-  plugins: [
-    "~/plugins/language.client.js"
-  ],
+  plugins: ["~/plugins/language.client.js"],
 
   build: {
-    transpile: ['@vuepic/vue-datepicker', '@hohte/ec-date-picker']
+    transpile: ["@vuepic/vue-datepicker", "@hohte/ec-date-picker"],
+  },
+  vite: {
+    optimizeDeps: {
+      exclude: ["@hohte/ec-date-picker"],
+    },
   },
 
   nitro: {
-    moduleSideEffects: ['@hohte/ec-date-picker']
+    moduleSideEffects: ["@hohte/ec-date-picker"],
   },
 
   vue: {
     compilerOptions: {
-      isCustomElement: (tag) => tag === 'ec-date-picker',
+      isCustomElement: (tag) => tag === "ec-date-picker",
     },
   },
 
