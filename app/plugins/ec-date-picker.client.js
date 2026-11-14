@@ -4,4 +4,9 @@
 // does  that. 
 import '@hohte/ec-date-picker'
 
-export default defineNuxtPlugin(() => {})
+export default defineNuxtPlugin(() => {
+  if (import.meta.client) {
+    // 强制触发一次，确保模块执行
+    console.log('ec-date-picker registered?', !!customElements.get('ec-date-picker'))
+  }
+})
