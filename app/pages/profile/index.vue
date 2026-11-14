@@ -230,15 +230,17 @@
             />
           </div>
 
-          <div class="field">
+          <div class="field field-full">
             <label class="field-label">{{
               t("profile.personal.birthDate")
             }}</label>
-            <input
-              v-model="form.personal.birth_date"
-              type="date"
-              class="text-input"
-            />
+            <div class="ec-date-picker-wrap">
+              <ec-date-picker
+                v-model="form.personal.birth_date"
+                max-today
+                :lang="locale === 'am' ? 'am' : 'en'"
+              />
+            </div>
           </div>
 
           <div class="field">
@@ -620,7 +622,7 @@ import PendingBadge from "~/components/profile/PendingBadge.vue";
 import ImportedBanner from "~/components/profile/ImportedBanner.vue";
 import ChangeRequestsList from "~/components/profile/ChangeRequestsList.vue";
 
-const { t } = useLanguage();
+const { t, locale } = useLanguage();
 const { goBack, goToClassChange } = useNavigation();
 const { toasts, success, error: toastError, removeToast } = useToast();
 
@@ -1314,6 +1316,20 @@ watch(profile, () => {
   font-size: 12px;
   color: #a0b3d9;
   font-style: italic;
+}
+
+/* ec-date-picker wrapper — the picker has its own white theme; wrap it so it
+   sits cleanly inside the dark card */
+.ec-date-picker-wrap {
+  background: #fff;
+  border-radius: 10px;
+  padding: 8px;
+  --ecdp-accent: #ffc125;
+  --ecdp-text: #1e3971;
+  --ecdp-muted: #6b7a99;
+  --ecdp-border: #d2d6da;
+  --ecdp-bg: #fff;
+  --ecdp-radius: 8px;
 }
 
 /* Departments (read-only) */
