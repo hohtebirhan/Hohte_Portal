@@ -234,14 +234,64 @@
             <label class="field-label">{{
               t("profile.personal.birthDate")
             }}</label>
-            <div class="ec-date-picker-wrap">
-              <ec-date-picker
-                :value="form.personal.birth_date"
-                max-today
-                :lang="locale === 'am' ? 'am' : 'en'"
-                @change="form.personal.birth_date = $event.detail.value"
-              />
-            </div>
+            <!-- Compact field with a calendar icon. The picker itself opens in a
+                 bottom sheet so the card can never clip it. -->
+            <button
+              type="button"
+              class="date-field"
+              :aria-label="locale === 'am' ? 'ቀን ይምረጡ' : 'Select date'"
+              @click="openDatePicker"
+            >
+              <span class="date-field-text">
+                <template v-if="birthDateDisplay">
+                  <span class="date-ec">{{ birthDateDisplay.ec }}</span>
+                  <span class="date-gc">{{ birthDateDisplay.gc }}</span>
+                </template>
+                <span v-else class="date-placeholder">{{
+                  locale === "am" ? "ቀን ይምረጡ" : "Select date"
+                }}</span>
+              </span>
+              <span class="date-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="22" height="22">
+                  <path
+                    fill="currentColor"
+                    d="M7 2a1 1 0 0 1 1 1v1h8V3a1 1 0 1 1 2 0v1h1a3 3 0 0 1 3 3v12a3 3 0 0 1-3 3H5a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3h1V3a1 1 0 0 1 1-1Zm13 8H4v9a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-9Z"
+                  />
+                </svg>
+              </span>
+            </button>
+
+            <Teleport to="body">
+              <div
+                v-if="showDatePicker"
+                class="date-sheet-backdrop"
+                @click.self="closeDatePicker"
+              >
+                <div class="date-sheet" role="dialog" aria-modal="true">
+                  <div class="date-sheet-header">
+                    <h3 class="date-sheet-title">
+                      {{ t("profile.personal.birthDate") }}
+                    </h3>
+                    <button
+                      type="button"
+                      class="date-sheet-close"
+                      @click="closeDatePicker"
+                    >
+                      {{ locale === "am" ? "ዝጋ" : "Close" }}
+                    </button>
+                  </div>
+                  <!-- No v-model: it breaks the Nuxt/Netlify build on custom
+                       elements. Bind :value and listen to @change instead. -->
+                  <ec-date-picker
+                    ref="sheetPicker"
+                    :value="form.personal.birth_date"
+                    max-today
+                    :lang="locale === 'am' ? 'am' : 'en'"
+                    @change="onBirthDateChange"
+                  />
+                </div>
+              </div>
+            </Teleport>
           </div>
 
           <div class="field">
@@ -594,7 +644,11 @@
         <p v-else class="dept-empty">{{ t("profile.notSet") }}</p>
         <p class="dept-hint">{{ t("profile.departmentsReadOnly") }}</p>
 
-        <button type="button" class="btn-class-change" @click="goToClassChange">
+        <button
+          type="button"
+          class="btn-class-change"
+          @click="goToClassChange"
+        >
           {{ t("profile.requestDeptChange") }}
         </button>
       </div>
@@ -606,7 +660,15 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, watch, nextTick } from "vue";
+import {
+  ref,
+  reactive,
+  computed,
+  onMounted,
+  watch,
+  nextTick,
+  unref,
+} from "vue";
 import { useLanguage } from "~/composables/useLanguage";
 import { useNavigation } from "~/composables/useNavigation";
 import { useToast } from "~/composables/useToast";
@@ -645,6 +707,44 @@ const {
 const initialLoading = ref(true);
 const loadError = ref("");
 const savingSection = ref("");
+
+// ------------------------------------------------------------------
+// Birth date picker (opens in a bottom sheet)
+// ------------------------------------------------------------------
+const showDatePicker = ref(false);
+const sheetPicker = ref(null);
+
+const openDatePicker = async () => {
+  showDatePicker.value = true;
+  await nextTick();
+  // Open the calendar straight away so the person doesn't need a second tap.
+  sheetPicker.value?.open?.("ec");
+};
+
+const closeDatePicker = () => {
+  showDatePicker.value = false;
+};
+
+const onBirthDateChange = (event) => {
+  form.personal.birth_date = event.detail.value;
+  closeDatePicker();
+};
+
+// Text shown in the compact field: Ethiopian date + Gregorian date
+const birthDateDisplay = computed(() => {
+  const iso = form.personal.birth_date;
+  if (!iso || typeof window === "undefined") return null;
+  const Cal = window.EthiopianCalendar;
+  if (!Cal) return { ec: "", gc: iso };
+  const gc = Cal.parseIso(iso);
+  if (!gc) return null;
+  const ec = Cal.toEthiopian(gc);
+  const am = unref(locale) === "am";
+  return {
+    ec: `${Cal.formatEc(ec)} ${am ? "ዓ.ም" : "E.C."}`,
+    gc: `${Cal.formatGc(gc)} G.C.`,
+  };
+});
 
 // ------------------------------------------------------------------
 // Form state — flat per section, initialized from profile, then two-way bound.
@@ -750,8 +850,7 @@ const hydrate = () => {
     first_name: pendingValueFor("first_name") ?? personal.first_name ?? "",
     middle_name: pendingValueFor("middle_name") ?? personal.middle_name ?? "",
     last_name: pendingValueFor("last_name") ?? personal.last_name ?? "",
-    phone_number:
-      pendingValueFor("phone_number") ?? personal.phone_number ?? "",
+    phone_number: pendingValueFor("phone_number") ?? personal.phone_number ?? "",
     baptismal_name: personal.baptismal_name || "",
     mother_name: personal.mother_name || "",
     birth_date: personal.birth_date || "",
@@ -1316,18 +1415,131 @@ watch(profile, () => {
   font-style: italic;
 }
 
-/* ec-date-picker wrapper — the picker has its own white theme; wrap it so it
-   sits cleanly inside the dark card */
-.ec-date-picker-wrap {
-  background: #fff;
+/* Birth date: compact field with a calendar icon on the right edge */
+.field {
+  min-width: 0;
+}
+.date-field {
+  width: 100%;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 14px;
+  min-height: 52px;
   border-radius: 10px;
-  padding: 8px;
-  --ecdp-accent: #ffc125;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 0.2s ease,
+    background 0.2s ease;
+}
+.date-field:hover,
+.date-field:focus-visible {
+  border-color: #ffc125;
+  background: rgba(255, 255, 255, 0.1);
+  outline: none;
+}
+.date-field-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  overflow: hidden;
+}
+.date-ec {
+  font-size: 15px;
+  font-weight: 700;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.date-gc {
+  font-size: 12px;
+  color: #a0b3d9;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.date-placeholder {
+  font-size: 15px;
+  color: #a0b3d9;
+}
+.date-icon {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  color: #ffc125;
+  background: rgba(255, 193, 37, 0.12);
+}
+
+/* Bottom sheet that holds the picker (teleported to <body>, so no card can clip it) */
+.date-sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.55);
+}
+.date-sheet {
+  width: 100%;
+  max-width: 420px;
+  min-height: min(580px, 92vh);
+  max-height: 92vh;
+  overflow-x: hidden;
+  overflow-y: auto;
+  box-sizing: border-box;
+  padding: 14px 12px calc(20px + env(safe-area-inset-bottom, 0px));
+  background: #fff;
+  color: #1e3971;
+  border-radius: 16px 16px 0 0;
+  --ecdp-accent: #1e3971;
   --ecdp-text: #1e3971;
   --ecdp-muted: #6b7a99;
   --ecdp-border: #d2d6da;
   --ecdp-bg: #fff;
   --ecdp-radius: 8px;
+}
+.date-sheet-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.date-sheet-title {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+  color: #1e3971;
+}
+.date-sheet-close {
+  border: none;
+  background: #eef1f7;
+  color: #1e3971;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  padding: 8px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+/* Make the calendar popup exactly as wide as the sheet, never wider */
+.date-sheet ec-date-picker::part(popup) {
+  width: 100%;
+  max-width: 100%;
 }
 
 /* Departments (read-only) */
