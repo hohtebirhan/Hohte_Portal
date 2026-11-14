@@ -1492,7 +1492,7 @@ watch(profile, () => {
 }
 .date-sheet {
   width: 100%;
-  max-width: 380px;
+  max-width: 340px;
   max-height: 85vh;
   overflow-x: hidden;
   overflow-y: auto;
