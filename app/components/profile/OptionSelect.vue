@@ -3,7 +3,7 @@
     <!-- Non-searchable: native select (fast, works great for short lists) -->
     <select
       v-if="!searchable"
-      :value="modelValue || ''"
+      :value="showOtherInput ? '__other__' : modelValue || ''"
       class="select-input"
       :class="{ error: !!error }"
       @change="onSelect"
@@ -29,6 +29,7 @@
     <div v-else class="searchable" :class="{ error: !!error }">
       <div class="selected-display" @click="toggleOpen">
         <span v-if="selectedLabel" class="selected-label">{{ selectedLabel }}</span>
+        <span v-else-if="showOtherInput" class="selected-label">＋ {{ otherLabel }}</span>
         <span v-else class="placeholder-label">{{ placeholder }}</span>
         <svg class="chevron" :class="{ rotated: open }" viewBox="0 0 24 24" width="18" height="18">
           <path d="M7 10l5 5 5-5z" fill="currentColor" />
@@ -67,16 +68,18 @@
           </li>
         </ul>
       </div>
-
-      <input
-        v-if="showOtherInput"
-        v-model="otherValue"
-        type="text"
-        class="text-input other-input"
-        :placeholder="otherPlaceholder"
-        @input="emitOther"
-      />
     </div>
+
+    <!-- "Other" text box: shown for BOTH the native select and the searchable list -->
+    <input
+      v-if="showOtherInput"
+      v-model="otherValue"
+      type="text"
+      class="other-input"
+      :maxlength="otherMaxlength"
+      :placeholder="otherPlaceholder"
+      @input="emitOther"
+    />
 
     <p v-if="error" class="error-message">{{ error }}</p>
   </div>
@@ -93,6 +96,7 @@ const props = defineProps({
   searchPlaceholder: { type: String, default: 'Search...' },
   otherLabel: { type: String, default: 'Other' },
   otherPlaceholder: { type: String, default: 'Type your answer' },
+  otherMaxlength: { type: Number, default: 150 },
   noResultsLabel: { type: String, default: 'No matches' },
   allowOther: { type: Boolean, default: true },
   searchable: { type: Boolean, default: false },
@@ -157,6 +161,7 @@ const onSelect = (e) => {
     return
   }
   showOtherInput.value = false
+  otherValue.value = ''
   emit('update:otherModelValue', null)
   emit('update:modelValue', v || null)
 }
@@ -178,6 +183,7 @@ const close = () => {
 
 const pick = (value) => {
   showOtherInput.value = false
+  otherValue.value = ''
   emit('update:otherModelValue', null)
   emit('update:modelValue', value)
   close()
@@ -358,7 +364,6 @@ watch(
   font-size: 15px;
   font-family: inherit;
   outline: none;
-  margin-top: 6px;
 }
 .other-input:focus { border-color: #ffc125; background: rgba(255, 255, 255, 0.1); }
 .other-input::placeholder { color: #a0b3d9; }

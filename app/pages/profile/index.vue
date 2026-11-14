@@ -504,14 +504,29 @@
             </label>
             <OptionSelect
               v-model="form.work.occupation_status"
-              v-model:other-model-value="form.work.occupation_status_other"
               :options="optionsList('occupation_status')"
               :placeholder="t('profile.chooseOption')"
-              :allow-other="true"
-              :other-label="t('profile.addOther')"
-              :other-placeholder="t('profile.work.occupationStatusOther')"
+              :allow-other="false"
               :error="fieldError('work.occupation_status')"
             />
+            <!-- "Other" is a real option code from the API; ask what it is -->
+            <template v-if="form.work.occupation_status === 'other'">
+              <input
+                v-model="form.work.occupation_status_other"
+                type="text"
+                class="text-input"
+                maxlength="150"
+                :class="{ error: fieldError('work.occupation_status_other') }"
+                :placeholder="t('profile.work.occupationStatusOther')"
+                @input="clearFieldError('work.occupation_status_other')"
+              />
+              <p
+                v-if="fieldError('work.occupation_status_other')"
+                class="field-error"
+              >
+                {{ fieldError("work.occupation_status_other") }}
+              </p>
+            </template>
           </div>
           <div class="field">
             <label class="field-label">{{ t("profile.work.jobTitle") }}</label>
@@ -821,6 +836,14 @@ watch(
   { deep: true },
 );
 
+// Occupation "Other" text only belongs to the "other" status
+watch(
+  () => form.work.occupation_status,
+  (status) => {
+    if (status !== "other") form.work.occupation_status_other = "";
+  },
+);
+
 // ------------------------------------------------------------------
 // Options helpers
 // ------------------------------------------------------------------
@@ -1013,7 +1036,10 @@ const spiritualPayload = () => ({
 
 const workPayload = () => ({
   occupation_status: nullIfEmpty(form.work.occupation_status),
-  occupation_status_other: nullIfEmpty(form.work.occupation_status_other),
+  occupation_status_other:
+    form.work.occupation_status === "other"
+      ? nullIfEmpty(form.work.occupation_status_other)
+      : null,
   job_title: nullIfEmpty(form.work.job_title),
 });
 
