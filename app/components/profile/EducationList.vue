@@ -14,8 +14,19 @@
             t("profile.education.currentBadge")
           }}</span>
         </div>
-        <button type="button" class="entry-remove" @click="removeEntry(i)">
-          {{ t("profile.removeOther") }}
+        <button
+          type="button"
+          class="entry-remove"
+          :aria-label="t('profile.removeOther')"
+          :title="t('profile.removeOther')"
+          @click="removeEntry(i)"
+        >
+          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+            <path
+              fill="currentColor"
+              d="M9 3a1 1 0 0 0-1 1v1H4a1 1 0 1 0 0 2h1v12a3 3 0 0 0 3 3h8a3 3 0 0 0 3-3V7h1a1 1 0 1 0 0-2h-4V4a1 1 0 0 0-1-1H9Zm1 2h4v0h-4V5Zm-3 2h10v12a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1V7Zm3 3a1 1 0 0 0-1 1v6a1 1 0 1 0 2 0v-6a1 1 0 0 0-1-1Zm4 0a1 1 0 0 0-1 1v6a1 1 0 1 0 2 0v-6a1 1 0 0 0-1-1Z"
+            />
+          </svg>
         </button>
       </div>
 
@@ -23,14 +34,16 @@
         <div class="entry-field">
           <label class="entry-label">{{ t("profile.education.level") }}</label>
           <OptionSelect
-            v-model="entry.level"
+            :model-value="entry.level"
+            @update:model-value="(v) => setLevel(entry, v)"
             :options="levelOptions"
             :placeholder="t('profile.chooseOption')"
             :allow-other="false"
           />
         </div>
 
-        <div class="entry-field">
+        <!-- School (1-12) has no field of study -->
+        <div v-if="!hasNoField(entry)" class="entry-field">
           <label class="entry-label">{{ t("profile.education.field") }}</label>
           <OptionSelect
             v-model="entry.field"
@@ -140,6 +153,18 @@ const lang = computed(() => (locale.value === "am" ? "am" : "en"));
 
 let counter = 0;
 
+// Levels that have no field of study (primary / secondary school)
+const NO_FIELD_LEVELS = ["school"];
+const hasNoField = (entry) => NO_FIELD_LEVELS.includes(entry.level);
+
+const setLevel = (entry, value) => {
+  entry.level = value || "";
+  if (hasNoField(entry)) {
+    entry.field = "";
+    entry.field_other = "";
+  }
+};
+
 const addEntry = () => {
   if (props.entries.length >= props.max) return;
   props.entries.push({
@@ -247,15 +272,19 @@ const listErrors = computed(() => {
 }
 .entry-remove {
   flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
   background: rgba(255, 138, 128, 0.12);
   color: #ff8a80;
   border: 1px solid rgba(255, 138, 128, 0.35);
   border-radius: 8px;
-  padding: 6px 12px;
-  font-size: 13px;
-  font-weight: 600;
-  font-family: inherit;
   cursor: pointer;
+}
+.entry-remove:hover {
+  background: rgba(255, 138, 128, 0.22);
 }
 
 .entry-grid {

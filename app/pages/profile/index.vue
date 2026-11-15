@@ -1017,8 +1017,10 @@ const educationsPayload = () =>
       const item = {};
       if (e.id) item.id = e.id;
       item.level = nullIfEmpty(e.level);
-      item.field = nullIfEmpty(e.field);
-      item.field_other = nullIfEmpty(e.field_other);
+      // School (1-12) has no field of study
+      const noField = e.level === "school";
+      item.field = noField ? null : nullIfEmpty(e.field);
+      item.field_other = noField ? null : nullIfEmpty(e.field_other);
       item.school = nullIfEmpty(e.school);
       item.school_other = nullIfEmpty(e.school_other);
       item.is_current = !!e.is_current;
