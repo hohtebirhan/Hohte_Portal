@@ -336,7 +336,16 @@
       "occupationStatus": "የሥራ ሁኔታ",
       "jobTitle": "የሥራ መጠሪያ",
       "occupationRequired": "እባክዎ የሥራ ሁኔታ ይምረጡ።",
-      "occupationStatusOther": "የሥራ ሁኔታ (የራስዎን ይጻፉ)"
+      "occupationStatusOther": "የሥራ ሁኔታ (የራስዎን ይጻፉ)",
+       "organization": "ድርጅት (አማራጭ)",
+    "jobsHeading": "ሥራዎች",
+    "entryTitle": "ሥራ {n}",
+    "currentBadge": "የአሁን",
+    "currentLabel": "አሁን እዚህ እየሠራሁ ነው",
+    "startDate": "የጀመሩበት ቀን",
+    "endDate": "የጨረሱበት ቀን",
+    "add": "ሥራ ጨምር",
+    "empty": "እስካሁን ምንም ሥራ አልተጨመረም።"
     },
     "skills": {
       "items": "ክህሎቶችና ችሎታዎች",

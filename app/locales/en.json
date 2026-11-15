@@ -336,7 +336,16 @@
       "occupationStatus": "Occupation status",
       "jobTitle": "Job title",
       "occupationRequired": "Please choose an occupation status.",
-      "occupationStatusOther": "Occupation status (type your own)"
+      "occupationStatusOther": "Occupation status (type your own)",
+      "organization": "Organization (optional)",
+      "jobsHeading": "Jobs",
+      "entryTitle": "Job {n}",
+      "currentBadge": "Current",
+      "currentLabel": "I work here now",
+      "startDate": "Start date",
+      "endDate": "End date",
+      "add": "Add job",
+      "empty": "No jobs added yet."
     },
     "skills": {
       "items": "Skills and talents",
