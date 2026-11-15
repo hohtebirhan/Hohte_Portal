@@ -5,8 +5,10 @@
 //   localized with the right ?lang= value.
 // - Options are cached at module scope, one cache per locale, because
 //   the API returns label_am/label_en and the `label` field depends on lang.
-// - saveSection(name, payload) sends ONE section at a time (the API saves
-//   a section whole: fields left out of that section get cleared).
+// - saveSections({ work: {...}, jobs: [...] }) sends one or several sections
+//   in ONE request (the API saves each section whole: fields left out of that
+//   section get cleared; lists are replaced as a whole).
+// - saveSection(name, payload) is a shortcut for a single section.
 // - On 422, the server's `errors` object (e.g. { "address.sub_city": [...] })
 //   is exposed as `lastValidationErrors` AND rethrown so callers can react.
 //
@@ -115,17 +117,20 @@ export const useMemberProfile = () => {
   }
 
   /**
-   * PATCH /member-profile/me with ONE section.
-   * Example: saveSection('address', { country: 'ET', sub_city: 'bole', ... })
+   * PATCH /member-profile/me with one or several sections in ONE request.
+   * Example: saveSections({ work: { occupation_status: 'employed' },
+   *                         jobs: [ { job_title: 'Teacher' } ] })
    *
    * On 422, `lastValidationErrors` holds the per-field map and the error is
    * rethrown so the page can decide what to show.
    * Returns the fresh profile on success.
    */
-  const saveSection = async (sectionName, payload) => {
-    if (!sectionName) {
-      throw new Error('saveSection requires a section name')
+  const saveSections = async (sections) => {
+    if (!sections || typeof sections !== 'object' || !Object.keys(sections).length) {
+      throw new Error('saveSections requires at least one section')
     }
+
+    const names = Object.keys(sections).join(', ')
 
     try {
       isSaving.value = true
@@ -133,7 +138,7 @@ export const useMemberProfile = () => {
       lastValidationErrors.value = null
 
       const response = await memberProfileService.saveSections(
-        { [sectionName]: payload },
+        sections,
         currentLang()
       )
 
@@ -145,11 +150,22 @@ export const useMemberProfile = () => {
       } else {
         error.value = err.message
       }
-      console.error(`useMemberProfile.saveSection(${sectionName}) failed:`, err)
+      console.error(`useMemberProfile.saveSections(${names}) failed:`, err)
       throw err
     } finally {
       isSaving.value = false
     }
+  }
+
+  /**
+   * PATCH /member-profile/me with ONE section.
+   * Example: saveSection('address', { country: 'ET', sub_city: 'bole', ... })
+   */
+  const saveSection = async (sectionName, payload) => {
+    if (!sectionName) {
+      throw new Error('saveSection requires a section name')
+    }
+    return saveSections({ [sectionName]: payload })
   }
 
   /** POST /member-profile/me/confirm — "Everything is correct" */
@@ -239,6 +255,7 @@ export const useMemberProfile = () => {
     // actions
     loadOptions,
     loadProfile,
+    saveSections,
     saveSection,
     confirmProfile,
     loadChangeRequests,
