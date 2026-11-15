@@ -493,14 +493,14 @@
               </p>
             </template>
           </div>
-          <div class="field">
-            <label class="field-label">{{ t("profile.work.jobTitle") }}</label>
-            <input
-              v-model="form.work.job_title"
-              type="text"
-              class="text-input"
-            />
-          </div>
+        </div>
+
+        <div class="jobs-block">
+          <h4 class="jobs-heading">{{ t("profile.work.jobsHeading") }}</h4>
+          <JobList
+            :entries="form.work.jobs"
+            :errors="lastValidationErrors || {}"
+          />
         </div>
       </ProfileSectionCard>
 
@@ -602,6 +602,7 @@ import ImportedBanner from "~/components/profile/ImportedBanner.vue";
 import ChangeRequestsList from "~/components/profile/ChangeRequestsList.vue";
 import DateField from "~/components/profile/DateField.vue";
 import EducationList from "~/components/profile/EducationList.vue";
+import JobList from "~/components/profile/JobList.vue";
 
 const { t, locale } = useLanguage();
 const { goBack, goToClassChange } = useNavigation();
@@ -619,7 +620,7 @@ const {
   isImported,
   loadOptions,
   loadProfile,
-  saveSection,
+  saveSections,
   confirmProfile,
   loadChangeRequests,
   getPendingFor,
@@ -667,7 +668,7 @@ const form = reactive({
   work: {
     occupation_status: "",
     occupation_status_other: "",
-    job_title: "",
+    jobs: [],
   },
   skills: {
     items: [],
@@ -782,8 +783,23 @@ const hydrate = () => {
   Object.assign(form.work, {
     occupation_status: codeOf(work.occupation_status) || "",
     occupation_status_other: work.occupation_status_other || "",
-    job_title: work.job_title || "",
   });
+  // Jobs are a list (current job first). Fall back to the old single
+  // `work.job_title` only if the API did not send `jobs`.
+  const jobList = Array.isArray(p.jobs)
+    ? p.jobs
+    : work.job_title
+      ? [{ job_title: work.job_title }]
+      : [];
+  form.work.jobs = jobList.map((j, i) => ({
+    id: j.id,
+    _key: j.id ? `job-${j.id}` : `job-legacy-${i}`,
+    job_title: j.job_title || "",
+    organization: j.organization || "",
+    is_current: !!j.is_current,
+    start_date: j.start_date || "",
+    end_date: j.end_date || "",
+  }));
 
   const skills = p.skills || {};
   form.skills.items = codesOf(skills.items);
@@ -920,8 +936,9 @@ const workSummary = computed(() => {
     form.work.occupation_status === "other" && form.work.occupation_status_other
       ? form.work.occupation_status_other
       : st;
+  const job = form.work.jobs.find((j) => j.is_current) || form.work.jobs[0];
   return (
-    [statusText, form.work.job_title].filter(Boolean).join(" · ") ||
+    [statusText, job?.job_title].filter(Boolean).join(" · ") ||
     t("profile.summary.empty")
   );
 });
@@ -1040,8 +1057,31 @@ const workPayload = () => ({
     form.work.occupation_status === "other"
       ? nullIfEmpty(form.work.occupation_status_other)
       : null,
-  job_title: nullIfEmpty(form.work.job_title),
 });
+
+// The API wants the WHOLE job list: entries with an id are updated, entries
+// without one are added, entries left out are deleted.
+const jobsPayload = () =>
+  form.work.jobs
+    .filter(
+      (j) =>
+        j.id ||
+        j.job_title ||
+        j.organization ||
+        j.start_date ||
+        j.end_date ||
+        j.is_current,
+    ) // a completely blank new entry is not sent
+    .map((j) => {
+      const item = {};
+      if (j.id) item.id = j.id;
+      item.job_title = nullIfEmpty(j.job_title);
+      item.organization = nullIfEmpty(j.organization);
+      item.is_current = !!j.is_current;
+      item.start_date = nullIfEmpty(j.start_date);
+      item.end_date = j.is_current ? null : nullIfEmpty(j.end_date);
+      return item;
+    });
 
 const skillsPayload = () => ({
   items: [...form.skills.items],
@@ -1051,15 +1091,14 @@ const skillsPayload = () => ({
 });
 
 const runSave = async (
-  section,
-  payload,
+  section, // which card is saving (for the spinner and the error line)
+  sections, // what to send, e.g. { work: {...}, jobs: [...] }
   successKey = "profile.savedSuccess",
-  apiKey = section, // the key sent to the API, e.g. "educations" for the list
 ) => {
   savingSection.value = section;
   sectionError[section] = "";
   try {
-    await saveSection(apiKey, payload);
+    await saveSections(sections);
     hydrate();
 
     // If the payload touched review-gated fields, refresh the change requests
@@ -1082,13 +1121,18 @@ const runSave = async (
   }
 };
 const savePersonal = () =>
-  runSave("personal", personalPayload(), "profile.savedPending");
-const saveAddress = () => runSave("address", addressPayload());
+  runSave("personal", { personal: personalPayload() }, "profile.savedPending");
+const saveAddress = () => runSave("address", { address: addressPayload() });
 const saveEducation = () =>
-  runSave("education", educationsPayload(), "profile.savedSuccess", "educations");
-const saveSpiritual = () => runSave("spiritual_education", spiritualPayload());
-const saveWork = () => runSave("work", workPayload());
-const saveSkills = () => runSave("skills", skillsPayload());
+  runSave("education", { educations: educationsPayload() });
+const saveSpiritual = () =>
+  runSave("spiritual_education", {
+    spiritual_education: spiritualPayload(),
+  });
+// Occupation status and the job list are saved together in one request.
+const saveWork = () =>
+  runSave("work", { work: workPayload(), jobs: jobsPayload() });
+const saveSkills = () => runSave("skills", { skills: skillsPayload() });
 
 // ------------------------------------------------------------------
 // Confirm profile
@@ -1344,6 +1388,19 @@ watch(profile, () => {
   font-size: 12px;
   color: #a0b3d9;
   font-style: italic;
+}
+
+/* Jobs list inside the Work card */
+.jobs-block {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+.jobs-heading {
+  margin: 0 0 12px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #fff;
 }
 
 /* Departments (read-only) */
