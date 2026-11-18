@@ -379,7 +379,8 @@
       "hasSkill": "I have this skill",
       "wantsToServe": "I want to serve on this",
       "tickOne": "Tick \"I have this skill\", \"I want to serve on this\", or both.",
-      "count": "{n} area(s)"
+      "count": "{n} area(s)",
+      "tickServe": "Tick \"I want to serve on this\"."
     },
     "detailPlaceholder": "Detail (optional)"
   },

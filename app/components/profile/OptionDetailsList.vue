@@ -4,7 +4,7 @@
       <div class="detail-title">{{ labelOf(code) }}</div>
 
       <div v-if="withTicks && details[code]" class="ticks">
-        <label class="tick">
+        <label v-if="!AREAS_WITHOUT_SKILL.includes(code)" class="tick">
           <input v-model="details[code].has_skill" type="checkbox" />
           <span>{{ t("profile.areas.hasSkill") }}</span>
         </label>
@@ -13,11 +13,8 @@
           <span>{{ t("profile.areas.wantsToServe") }}</span>
         </label>
       </div>
-      <p
-        v-if="withTicks && details[code] && !details[code].has_skill && !details[code].wants_to_serve"
-        class="detail-error"
-      >
-        {{ t("profile.areas.tickOne") }}
+      <p v-if="withTicks && missingTick(code)" class="detail-error">
+        {{ AREAS_WITHOUT_SKILL.includes(code) ? t("profile.areas.tickServe") : t("profile.areas.tickOne") }}
       </p>
       <p v-else-if="errorFor(i, '')" class="detail-error">{{ errorFor(i, "") }}</p>
 
@@ -39,6 +36,7 @@
 // ticks "I have this skill" / "I want to serve on this". `details` is a
 // reactive object keyed by code that the page keeps in step with `codes`.
 import { useLanguage } from "~/composables/useLanguage";
+import { AREAS_WITHOUT_SKILL, areaMissingTick } from "~/config/profileAreas";
 
 const props = defineProps({
   codes: { type: Array, default: () => [] },
@@ -51,6 +49,8 @@ const props = defineProps({
 });
 
 const { t } = useLanguage();
+
+const missingTick = (code) => areaMissingTick(code, props.details[code]);
 
 const labelOf = (code) => props.options.find((o) => o.code === code)?.label || code;
 

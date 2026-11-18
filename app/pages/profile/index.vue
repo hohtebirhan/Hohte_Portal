@@ -627,6 +627,7 @@ import ProfileSectionCard from "~/components/profile/ProfileSectionCard.vue";
 import OptionSelect from "~/components/profile/OptionSelect.vue";
 import OptionMultiSelect from "~/components/profile/OptionMultiSelect.vue";
 import OptionDetailsList from "~/components/profile/OptionDetailsList.vue";
+import { AREAS_WITHOUT_SKILL, areaDefaults, areaMissingTick } from "~/config/profileAreas";
 import PendingBadge from "~/components/profile/PendingBadge.vue";
 import ImportedBanner from "~/components/profile/ImportedBanner.vue";
 import ChangeRequestsList from "~/components/profile/ChangeRequestsList.vue";
@@ -744,26 +745,28 @@ const codeOf = (v) => {
 const codesOf = (arr) =>
   Array.isArray(arr) ? arr.map(codeOf).filter(Boolean) : [];
 
-// A newly chosen area starts as a skill the member has.
-const AREA_DEFAULTS = { has_skill: true, wants_to_serve: false, detail: "" };
 const DETAIL_DEFAULTS = { detail: "" };
 
 // Details keyed by code from the API's entries (newer API), else from the
 // plain items list (older API: no ticks or details, every area a skill).
+// `defaults` is an object, or a function of the code (areas).
+const defaultsFor = (defaults, code) =>
+  typeof defaults === "function" ? defaults(code) : { ...defaults };
+
 const detailsFrom = (entries, items, defaults) => {
   const out = {};
   if (Array.isArray(entries)) {
     entries.forEach((e) => {
       const code = codeOf(e);
       if (!code) return;
-      out[code] = { ...defaults };
+      out[code] = defaultsFor(defaults, code);
       Object.keys(defaults).forEach((k) => {
         if (e[k] !== undefined && e[k] !== null) out[code][k] = k === "detail" ? e[k] : !!e[k];
       });
     });
   }
   codesOf(items).forEach((code) => {
-    if (!out[code]) out[code] = { ...defaults };
+    if (!out[code]) out[code] = defaultsFor(defaults, code);
   });
   return out;
 };
@@ -774,7 +777,7 @@ const syncDetails = (codes, details, defaults) => {
     if (!codes.includes(code)) delete details[code];
   });
   codes.forEach((code) => {
-    if (!details[code]) details[code] = { ...defaults };
+    if (!details[code]) details[code] = defaultsFor(defaults, code);
   });
 };
 
@@ -872,7 +875,7 @@ const hydrate = () => {
   }));
 
   const skills = p.skills || {};
-  form.skills.areaDetails = detailsFrom(skills.areas, skills.items, AREA_DEFAULTS);
+  form.skills.areaDetails = detailsFrom(skills.areas, skills.items, areaDefaults);
   form.skills.items = Object.keys(form.skills.areaDetails);
   form.skills.other = Array.isArray(skills.other) ? [...skills.other] : [];
   form.skills.availabilityDetails = detailsFrom(skills.availability_entries, skills.availability, DETAIL_DEFAULTS);
@@ -900,7 +903,7 @@ watch(
 // Ticks and detail boxes follow the chosen areas / items
 watch(
   () => [...form.skills.items],
-  (codes) => syncDetails(codes, form.skills.areaDetails, AREA_DEFAULTS),
+  (codes) => syncDetails(codes, form.skills.areaDetails, areaDefaults),
 );
 watch(
   () => [...form.skills.availability],
@@ -1183,10 +1186,10 @@ const jobsPayload = () =>
 // `availability` (codes only) are sent too for an API that does not know them.
 const skillsPayload = () => ({
   areas: form.skills.items.map((code) => {
-    const d = form.skills.areaDetails[code] || AREA_DEFAULTS;
+    const d = form.skills.areaDetails[code] || areaDefaults(code);
     return {
       code,
-      has_skill: !!d.has_skill,
+      has_skill: !AREAS_WITHOUT_SKILL.includes(code) && !!d.has_skill,
       wants_to_serve: !!d.wants_to_serve,
       detail: nullIfEmpty((d.detail || "").trim()),
     };
@@ -1198,12 +1201,8 @@ const skillsPayload = () => ({
   service_note: nullIfEmpty(form.skills.service_note),
 });
 
-// Every area needs "I have this skill", "I want to serve on this", or both.
 const areasMissingTick = () =>
-  form.skills.items.some((code) => {
-    const d = form.skills.areaDetails[code];
-    return d && !d.has_skill && !d.wants_to_serve;
-  });
+  form.skills.items.some((code) => areaMissingTick(code, form.skills.areaDetails[code]));
 
 const runSave = async (
   section, // which card is saving (for the spinner and the error line)
