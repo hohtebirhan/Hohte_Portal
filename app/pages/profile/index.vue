@@ -446,6 +446,16 @@
             :remove-label="t('profile.removeOther')"
             :max-others="10"
             :max-others-label="t('profile.maxOthersReached')"
+            :searchable="true"
+            :search-placeholder="t('profile.searchOptions')"
+            :no-results-label="t('profile.noOptionsFound')"
+          />
+          <OptionDetailsList
+            :codes="form.spiritual_education.items"
+            :details="form.spiritual_education.details"
+            :options="optionsList('spiritual_education')"
+            :errors="lastValidationErrors || {}"
+            error-prefix="spiritual_education.entries"
           />
         </div>
       </ProfileSectionCard>
@@ -516,7 +526,8 @@
         @save="saveSkills"
       >
         <div class="field">
-          <label class="field-label">{{ t("profile.skills.items") }}</label>
+          <label class="field-label">{{ t("profile.areas.label") }}</label>
+          <p class="field-hint">{{ t("profile.areas.hint") }}</p>
           <OptionMultiSelect
             v-model="form.skills.items"
             v-model:other-model-value="form.skills.other"
@@ -527,6 +538,17 @@
             :remove-label="t('profile.removeOther')"
             :max-others="10"
             :max-others-label="t('profile.maxOthersReached')"
+            :searchable="true"
+            :search-placeholder="t('profile.areas.search')"
+            :no-results-label="t('profile.noOptionsFound')"
+          />
+          <OptionDetailsList
+            :codes="form.skills.items"
+            :details="form.skills.areaDetails"
+            :options="optionsList('skill')"
+            :with-ticks="true"
+            :errors="lastValidationErrors || {}"
+            error-prefix="skills.areas"
           />
         </div>
 
@@ -541,6 +563,13 @@
             :add-label="t('profile.addOther')"
             :remove-label="t('profile.removeOther')"
             :max-others="0"
+          />
+          <OptionDetailsList
+            :codes="form.skills.availability"
+            :details="form.skills.availabilityDetails"
+            :options="optionsList('availability')"
+            :errors="lastValidationErrors || {}"
+            error-prefix="skills.availability_entries"
           />
         </div>
 
@@ -597,6 +626,7 @@ import ToastNotification from "~/components/ToastNotification.vue";
 import ProfileSectionCard from "~/components/profile/ProfileSectionCard.vue";
 import OptionSelect from "~/components/profile/OptionSelect.vue";
 import OptionMultiSelect from "~/components/profile/OptionMultiSelect.vue";
+import OptionDetailsList from "~/components/profile/OptionDetailsList.vue";
 import PendingBadge from "~/components/profile/PendingBadge.vue";
 import ImportedBanner from "~/components/profile/ImportedBanner.vue";
 import ChangeRequestsList from "~/components/profile/ChangeRequestsList.vue";
@@ -664,6 +694,7 @@ const form = reactive({
   spiritual_education: {
     items: [],
     other: [],
+    details: {}, // { code: { detail } }
   },
   work: {
     occupation_status: "",
@@ -671,9 +702,11 @@ const form = reactive({
     jobs: [],
   },
   skills: {
-    items: [],
+    items: [], // area codes
     other: [],
+    areaDetails: {}, // { code: { has_skill, wants_to_serve, detail } }
     availability: [],
+    availabilityDetails: {}, // { code: { detail } }
     service_note: "",
   },
 });
@@ -710,6 +743,40 @@ const codeOf = (v) => {
 };
 const codesOf = (arr) =>
   Array.isArray(arr) ? arr.map(codeOf).filter(Boolean) : [];
+
+// A newly chosen area starts as a skill the member has.
+const AREA_DEFAULTS = { has_skill: true, wants_to_serve: false, detail: "" };
+const DETAIL_DEFAULTS = { detail: "" };
+
+// Details keyed by code from the API's entries (newer API), else from the
+// plain items list (older API: no ticks or details, every area a skill).
+const detailsFrom = (entries, items, defaults) => {
+  const out = {};
+  if (Array.isArray(entries)) {
+    entries.forEach((e) => {
+      const code = codeOf(e);
+      if (!code) return;
+      out[code] = { ...defaults };
+      Object.keys(defaults).forEach((k) => {
+        if (e[k] !== undefined && e[k] !== null) out[code][k] = k === "detail" ? e[k] : !!e[k];
+      });
+    });
+  }
+  codesOf(items).forEach((code) => {
+    if (!out[code]) out[code] = { ...defaults };
+  });
+  return out;
+};
+
+// Keep one details row per chosen code: add defaults, drop removed codes.
+const syncDetails = (codes, details, defaults) => {
+  Object.keys(details).forEach((code) => {
+    if (!codes.includes(code)) delete details[code];
+  });
+  codes.forEach((code) => {
+    if (!details[code]) details[code] = { ...defaults };
+  });
+};
 
 const hydrate = () => {
   const p = profile.value || {};
@@ -766,6 +833,7 @@ const hydrate = () => {
     level: codeOf(e.level) || "",
     field: codeOf(e.field) || "",
     field_other: e.field_other || "",
+    field_detail: e.field_detail || "",
     school: codeOf(e.school) || "",
     school_other: e.school_other || "",
     is_current: !!e.is_current,
@@ -778,6 +846,8 @@ const hydrate = () => {
   form.spiritual_education.other = Array.isArray(spir.other)
     ? [...spir.other]
     : [];
+  form.spiritual_education.details = detailsFrom(spir.entries, spir.items, DETAIL_DEFAULTS);
+  form.spiritual_education.items = Object.keys(form.spiritual_education.details);
 
   const work = p.work || {};
   Object.assign(form.work, {
@@ -802,9 +872,11 @@ const hydrate = () => {
   }));
 
   const skills = p.skills || {};
-  form.skills.items = codesOf(skills.items);
+  form.skills.areaDetails = detailsFrom(skills.areas, skills.items, AREA_DEFAULTS);
+  form.skills.items = Object.keys(form.skills.areaDetails);
   form.skills.other = Array.isArray(skills.other) ? [...skills.other] : [];
-  form.skills.availability = codesOf(skills.availability);
+  form.skills.availabilityDetails = detailsFrom(skills.availability_entries, skills.availability, DETAIL_DEFAULTS);
+  form.skills.availability = Object.keys(form.skills.availabilityDetails);
   form.skills.service_note = skills.service_note || "";
 
   // take fresh snapshot
@@ -823,6 +895,20 @@ watch(
     });
   },
   { deep: true },
+);
+
+// Ticks and detail boxes follow the chosen areas / items
+watch(
+  () => [...form.skills.items],
+  (codes) => syncDetails(codes, form.skills.areaDetails, AREA_DEFAULTS),
+);
+watch(
+  () => [...form.skills.availability],
+  (codes) => syncDetails(codes, form.skills.availabilityDetails, DETAIL_DEFAULTS),
+);
+watch(
+  () => [...form.spiritual_education.items],
+  (codes) => syncDetails(codes, form.spiritual_education.details, DETAIL_DEFAULTS),
 );
 
 // Occupation "Other" text only belongs to the "other" status
@@ -945,9 +1031,7 @@ const workSummary = computed(() => {
 
 const skillsSummary = computed(() => {
   const n = form.skills.items.length + form.skills.other.length;
-  return n
-    ? `${n} ${n === 1 ? "skill" : "skills"}`
-    : t("profile.summary.empty");
+  return n ? t("profile.areas.count", { n }) : t("profile.summary.empty");
 });
 
 // ------------------------------------------------------------------
@@ -1024,6 +1108,7 @@ const educationsPayload = () =>
         e.level ||
         e.field ||
         e.field_other ||
+        e.field_detail ||
         e.school ||
         e.school_other ||
         e.start_date ||
@@ -1038,6 +1123,7 @@ const educationsPayload = () =>
       const noField = e.level === "school";
       item.field = noField ? null : nullIfEmpty(e.field);
       item.field_other = noField ? null : nullIfEmpty(e.field_other);
+      item.field_detail = noField ? null : nullIfEmpty((e.field_detail || "").trim());
       item.school = nullIfEmpty(e.school);
       item.school_other = nullIfEmpty(e.school_other);
       item.is_current = !!e.is_current;
@@ -1046,7 +1132,17 @@ const educationsPayload = () =>
       return item;
     });
 
+// Chosen codes with their detail: [{ code, detail }]
+const detailEntries = (codes, details) =>
+  codes.map((code) => ({
+    code,
+    detail: nullIfEmpty((details[code]?.detail || "").trim()),
+  }));
+
+// `entries` is the current API shape; `items` (codes only) is sent too, so
+// the page also works against an API that does not know `entries` yet.
 const spiritualPayload = () => ({
+  entries: detailEntries(form.spiritual_education.items, form.spiritual_education.details),
   items: [...form.spiritual_education.items],
   other: [...form.spiritual_education.other],
 });
@@ -1083,12 +1179,31 @@ const jobsPayload = () =>
       return item;
     });
 
+// `areas` / `availability_entries` are the current API shape; `items` /
+// `availability` (codes only) are sent too for an API that does not know them.
 const skillsPayload = () => ({
+  areas: form.skills.items.map((code) => {
+    const d = form.skills.areaDetails[code] || AREA_DEFAULTS;
+    return {
+      code,
+      has_skill: !!d.has_skill,
+      wants_to_serve: !!d.wants_to_serve,
+      detail: nullIfEmpty((d.detail || "").trim()),
+    };
+  }),
   items: [...form.skills.items],
   other: [...form.skills.other],
+  availability_entries: detailEntries(form.skills.availability, form.skills.availabilityDetails),
   availability: [...form.skills.availability],
   service_note: nullIfEmpty(form.skills.service_note),
 });
+
+// Every area needs "I have this skill", "I want to serve on this", or both.
+const areasMissingTick = () =>
+  form.skills.items.some((code) => {
+    const d = form.skills.areaDetails[code];
+    return d && !d.has_skill && !d.wants_to_serve;
+  });
 
 const runSave = async (
   section, // which card is saving (for the spinner and the error line)
@@ -1132,7 +1247,13 @@ const saveSpiritual = () =>
 // Occupation status and the job list are saved together in one request.
 const saveWork = () =>
   runSave("work", { work: workPayload(), jobs: jobsPayload() });
-const saveSkills = () => runSave("skills", { skills: skillsPayload() });
+const saveSkills = () => {
+  if (areasMissingTick()) {
+    sectionError.skills = t("profile.areas.tickOne");
+    return;
+  }
+  return runSave("skills", { skills: skillsPayload() });
+};
 
 // ------------------------------------------------------------------
 // Confirm profile

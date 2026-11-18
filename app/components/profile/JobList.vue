@@ -147,16 +147,10 @@ const removeEntry = (i) => {
   props.entries.splice(i, 1);
 };
 
-// Only one job can be current; a current job has no end date.
+// Several jobs can be current; a current job has no end date.
 const setCurrent = (i, checked) => {
-  if (checked) {
-    props.entries.forEach((e, idx) => {
-      e.is_current = idx === i;
-    });
-    props.entries[i].end_date = "";
-  } else {
-    props.entries[i].is_current = false;
-  }
+  props.entries[i].is_current = checked;
+  if (checked) props.entries[i].end_date = "";
 };
 
 // If the start moves after the end, the end is no longer valid: clear it.

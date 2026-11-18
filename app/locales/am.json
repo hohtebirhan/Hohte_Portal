@@ -325,7 +325,8 @@
       "startDate": "የጀመሩበት ቀን",
       "endDate": "የጨረሱበት ቀን",
       "add": "ትምህርት ጨምር",
-      "empty": "እስካሁን ምንም ትምህርት አልተጨመረም።"
+      "empty": "እስካሁን ምንም ትምህርት አልተጨመረም።",
+      "fieldDetail": "የትምህርት መስኩ ዝርዝር (አማራጭ)፣ ለምሳሌ ልዩ ሙያ"
     },
     "spiritualEducation": {
       "items": "የተከታተሏቸው ትምህርቶች",
@@ -337,15 +338,15 @@
       "jobTitle": "የሥራ መጠሪያ",
       "occupationRequired": "እባክዎ የሥራ ሁኔታ ይምረጡ።",
       "occupationStatusOther": "የሥራ ሁኔታ (የራስዎን ይጻፉ)",
-       "organization": "ድርጅት (አማራጭ)",
-    "jobsHeading": "ሥራዎች",
-    "entryTitle": "ሥራ {n}",
-    "currentBadge": "የአሁን",
-    "currentLabel": "አሁን እዚህ እየሠራሁ ነው",
-    "startDate": "የጀመሩበት ቀን",
-    "endDate": "የጨረሱበት ቀን",
-    "add": "ሥራ ጨምር",
-    "empty": "እስካሁን ምንም ሥራ አልተጨመረም።"
+      "organization": "ድርጅት (አማራጭ)",
+      "jobsHeading": "ሥራዎች",
+      "entryTitle": "ሥራ {n}",
+      "currentBadge": "የአሁን",
+      "currentLabel": "አሁን እዚህ እየሠራሁ ነው",
+      "startDate": "የጀመሩበት ቀን",
+      "endDate": "የጨረሱበት ቀን",
+      "add": "ሥራ ጨምር",
+      "empty": "እስካሁን ምንም ሥራ አልተጨመረም።"
     },
     "skills": {
       "items": "ክህሎቶችና ችሎታዎች",
@@ -370,7 +371,17 @@
         "ዲሴምበር"
       ]
     },
-    "requestDeptChange": "የክፍል ለውጥ ጠይቅ"
+    "requestDeptChange": "የክፍል ለውጥ ጠይቅ",
+    "areas": {
+      "label": "ዘርፎች፦ ክህሎቶችና ማገልገል የሚፈልጉበት",
+      "hint": "ክህሎት ያለዎትን ወይም ማገልገል የሚፈልጉበትን ዘርፍ ሁሉ ይምረጡ። ለእያንዳንዱ አንዱን ወይም ሁለቱንም ምልክት ያድርጉ።",
+      "search": "ዘርፍ ይፈልጉ (በአማርኛ ወይም በእንግሊዝኛ)...",
+      "hasSkill": "ይህ ክህሎት አለኝ",
+      "wantsToServe": "በዚህ ማገልገል እፈልጋለሁ",
+      "tickOne": "\"ይህ ክህሎት አለኝ\"፣ \"በዚህ ማገልገል እፈልጋለሁ\" ወይም ሁለቱንም ምልክት ያድርጉ።",
+      "count": "{n} ዘርፍ"
+    },
+    "detailPlaceholder": "ዝርዝር (አማራጭ)"
   },
   "classChange": {
     "title": "የክፍል ለውጥ ጠይቅ",

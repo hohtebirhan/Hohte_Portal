@@ -17,8 +17,37 @@
       </span>
     </div>
 
+    <!-- Searchable picker: one box that matches Amharic and English labels,
+         with small grey category headings inside the list -->
+    <div v-if="searchable" ref="pickerRoot" class="searchable">
+      <input
+        v-model="searchTerm"
+        type="text"
+        class="text-input"
+        :placeholder="searchPlaceholder"
+        @focus="open = true"
+        @keydown.esc="open = false"
+        @keydown.enter.prevent="pickFirstMatch"
+      />
+      <ul v-if="open" class="list">
+        <template v-for="group in filteredGroups" :key="group.name || '_'">
+          <li v-if="group.name" class="list-heading">{{ group.name }}</li>
+          <li
+            v-for="opt in group.items"
+            :key="opt.value"
+            class="list-item"
+            :class="{ picked: isPicked(opt.value) }"
+            @mousedown.prevent="pickValue(opt.value)"
+          >
+            {{ opt.label }}
+          </li>
+        </template>
+        <li v-if="!filteredGroups.length" class="list-empty">{{ noResultsLabel }}</li>
+      </ul>
+    </div>
+
     <!-- Add picker -->
-    <div class="picker-row">
+    <div v-else class="picker-row">
       <select class="select-input" @change="onPick">
         <option value="">{{ placeholder }}</option>
         <optgroup
@@ -39,7 +68,7 @@
     </div>
 
     <!-- Other free-text list -->
-    <div class="other-block">
+    <div v-if="maxOthers > 0" class="other-block">
       <div v-if="otherList.length" class="chips">
         <span
           v-for="(val, idx) in otherList"
@@ -82,7 +111,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 
 const props = defineProps({
   // array of codes/ids (strings/numbers)
@@ -97,19 +126,70 @@ const props = defineProps({
   maxOthers: { type: Number, default: 10 },
   maxOthersLabel: { type: String, default: 'You can add up to {max} entries.' },
   error: { type: String, default: '' },
+  // Search box instead of a native select (for long lists such as areas)
+  searchable: { type: Boolean, default: false },
+  searchPlaceholder: { type: String, default: 'Search...' },
+  noResultsLabel: { type: String, default: 'No matches' },
 })
 
 const emit = defineEmits(['update:modelValue', 'update:otherModelValue'])
 
 const otherDraft = ref('')
 
+// Headings come from the option's category (newer API), else its group.
+// label_en and label_am are kept so search matches either language.
 const normalized = computed(() =>
   (props.options || []).map((o) => ({
     value: o.code !== undefined ? o.code : o.id,
     label: o.label,
-    group: o.group || '',
+    label_en: o.label_en || o.label,
+    label_am: o.label_am || o.label,
+    group: (o.category && o.category.label) || o.group || '',
   }))
 )
+
+const searchTerm = ref('')
+const open = ref(false)
+const pickerRoot = ref(null)
+
+const filteredGroups = computed(() => {
+  const q = searchTerm.value.trim().toLowerCase()
+  const matches = q
+    ? normalized.value.filter(
+        (o) =>
+          o.label.toLowerCase().includes(q) ||
+          o.label_en.toLowerCase().includes(q) ||
+          o.label_am.toLowerCase().includes(q) ||
+          o.group.toLowerCase().includes(q)
+      )
+    : normalized.value
+  const map = new Map()
+  matches.forEach((o) => {
+    if (!map.has(o.group)) map.set(o.group, [])
+    map.get(o.group).push(o)
+  })
+  return Array.from(map.entries()).map(([name, items]) => ({ name, items }))
+})
+
+const pickValue = (v) => {
+  if (isPicked(v)) {
+    remove(v)
+  } else {
+    emit('update:modelValue', [...(props.modelValue || []), v])
+  }
+  searchTerm.value = ''
+}
+
+const pickFirstMatch = () => {
+  const first = filteredGroups.value.flatMap((g) => g.items).find((o) => !isPicked(o.value))
+  if (first) pickValue(first.value)
+}
+
+const closeOnOutsideClick = (e) => {
+  if (pickerRoot.value && !pickerRoot.value.contains(e.target)) open.value = false
+}
+onMounted(() => document.addEventListener('click', closeOnOutsideClick))
+onBeforeUnmount(() => document.removeEventListener('click', closeOnOutsideClick))
 
 const groupedOptions = computed(() => {
   const map = new Map()
@@ -213,6 +293,39 @@ const removeOther = (idx) => {
 .select-input:focus,
 .text-input:focus { border-color: #ffc125; background: rgba(255, 255, 255, 0.1); }
 .text-input::placeholder { color: #a0b3d9; }
+
+.searchable { position: relative; }
+.list {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 4px 0;
+  max-height: 260px;
+  overflow-y: auto;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: #1e3971;
+}
+.list-heading {
+  padding: 8px 14px 4px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #a0b3d9;
+}
+.list-item {
+  padding: 9px 14px;
+  font-size: 14px;
+  cursor: pointer;
+}
+.list-item:hover { background: rgba(255, 255, 255, 0.08); }
+.list-item.picked { color: #ffc125; }
+.list-item.picked::after { content: ' ✓'; }
+.list-empty {
+  padding: 9px 14px;
+  font-size: 13px;
+  color: #a0b3d9;
+}
 
 .other-block {
   display: flex;

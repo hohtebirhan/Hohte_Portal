@@ -56,6 +56,14 @@
             :search-placeholder="t('profile.searchOptions')"
             :no-results-label="t('profile.noOptionsFound')"
           />
+          <input
+            v-if="entry.field || entry.field_other"
+            v-model="entry.field_detail"
+            type="text"
+            class="field-detail-input"
+            maxlength="500"
+            :placeholder="t('profile.education.fieldDetail')"
+          />
         </div>
 
         <div class="entry-field">
@@ -162,6 +170,7 @@ const setLevel = (entry, value) => {
   if (hasNoField(entry)) {
     entry.field = "";
     entry.field_other = "";
+    entry.field_detail = "";
   }
 };
 
@@ -172,6 +181,7 @@ const addEntry = () => {
     level: "",
     field: "",
     field_other: "",
+    field_detail: "",
     school: "",
     school_other: "",
     is_current: false, // new entries always start unchecked
@@ -184,16 +194,10 @@ const removeEntry = (i) => {
   props.entries.splice(i, 1);
 };
 
-// Only one entry can be current; a current entry has no end date.
+// Several entries can be current; a current entry has no end date.
 const setCurrent = (i, checked) => {
-  if (checked) {
-    props.entries.forEach((e, idx) => {
-      e.is_current = idx === i;
-    });
-    props.entries[i].end_date = "";
-  } else {
-    props.entries[i].is_current = false;
-  }
+  props.entries[i].is_current = checked;
+  if (checked) props.entries[i].end_date = "";
 };
 
 // If the start moves after the end, the end is no longer valid: clear it.
@@ -331,6 +335,21 @@ const listErrors = computed(() => {
   }
 }
 
+.field-detail-input {
+  width: 100%;
+  margin-top: 8px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+  font-size: 15px;
+  font-family: inherit;
+  outline: none;
+  box-sizing: border-box;
+}
+.field-detail-input:focus { border-color: #ffc125; }
+.field-detail-input::placeholder { color: #a0b3d9; }
 .entry-error {
   margin: 10px 0 0;
   font-size: 12px;

@@ -325,7 +325,8 @@
       "startDate": "Start date",
       "endDate": "End date",
       "add": "Add education",
-      "empty": "No education added yet."
+      "empty": "No education added yet.",
+      "fieldDetail": "Field detail (optional), e.g. specialisation"
     },
     "spiritualEducation": {
       "items": "Completed courses",
@@ -370,7 +371,17 @@
         "December"
       ]
     },
-    "requestDeptChange": "Request department change"
+    "requestDeptChange": "Request department change",
+    "areas": {
+      "label": "Areas: skills and where you want to serve",
+      "hint": "Choose every area where you have a skill or want to serve. For each one, tick one or both boxes.",
+      "search": "Search areas (Amharic or English)...",
+      "hasSkill": "I have this skill",
+      "wantsToServe": "I want to serve on this",
+      "tickOne": "Tick \"I have this skill\", \"I want to serve on this\", or both.",
+      "count": "{n} area(s)"
+    },
+    "detailPlaceholder": "Detail (optional)"
   },
   "classChange": {
     "title": "Request department change",
