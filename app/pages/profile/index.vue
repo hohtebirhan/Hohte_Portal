@@ -311,7 +311,7 @@
             <div class="field">
               <label class="field-label">
                 {{ t("profile.address.subCity") }}
-                <span class="required-asterisk">*</span>
+                <span v-if="needsSubCity" class="required-asterisk">*</span>
               </label>
               <OptionSelect
                 v-model="form.address.sub_city"
@@ -1041,6 +1041,14 @@ const skillsSummary = computed(() => {
 // Address: is Ethiopia?
 // ------------------------------------------------------------------
 const isEthiopia = computed(() => form.address.country === "ET");
+// The sub-city list is Addis Ababa's, so only Addis Ababa needs one (same rule as
+// the ERP API). An Ethiopian address with no city counts as Addis Ababa.
+const needsSubCity = computed(
+  () =>
+    isEthiopia.value &&
+    (form.address.city === "addis_ababa" ||
+      (!form.address.city && !form.address.city_other)),
+);
 
 // Departments
 const currentDepartments = computed(() => {
