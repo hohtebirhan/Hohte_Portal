@@ -627,6 +627,7 @@ import ProfileSectionCard from "~/components/profile/ProfileSectionCard.vue";
 import OptionSelect from "~/components/profile/OptionSelect.vue";
 import OptionMultiSelect from "~/components/profile/OptionMultiSelect.vue";
 import OptionDetailsList from "~/components/profile/OptionDetailsList.vue";
+import { codeOf, codesOf, detailsFrom, syncDetails } from "~/utils/profileDetails";
 import { AREAS_WITHOUT_SKILL, areaDefaults, areaMissingTick } from "~/config/profileAreas";
 import PendingBadge from "~/components/profile/PendingBadge.vue";
 import ImportedBanner from "~/components/profile/ImportedBanner.vue";
@@ -736,50 +737,7 @@ const sectionError = reactive({
 // ------------------------------------------------------------------
 // Hydrate form from profile.value
 // ------------------------------------------------------------------
-const codeOf = (v) => {
-  if (v == null) return "";
-  if (typeof v === "object")
-    return v.code !== undefined ? v.code : v.id !== undefined ? v.id : "";
-  return v;
-};
-const codesOf = (arr) =>
-  Array.isArray(arr) ? arr.map(codeOf).filter(Boolean) : [];
-
 const DETAIL_DEFAULTS = { detail: "" };
-
-// Details keyed by code from the API's entries (newer API), else from the
-// plain items list (older API: no ticks or details, every area a skill).
-// `defaults` is an object, or a function of the code (areas).
-const defaultsFor = (defaults, code) =>
-  typeof defaults === "function" ? defaults(code) : { ...defaults };
-
-const detailsFrom = (entries, items, defaults) => {
-  const out = {};
-  if (Array.isArray(entries)) {
-    entries.forEach((e) => {
-      const code = codeOf(e);
-      if (!code) return;
-      out[code] = defaultsFor(defaults, code);
-      Object.keys(defaults).forEach((k) => {
-        if (e[k] !== undefined && e[k] !== null) out[code][k] = k === "detail" ? e[k] : !!e[k];
-      });
-    });
-  }
-  codesOf(items).forEach((code) => {
-    if (!out[code]) out[code] = defaultsFor(defaults, code);
-  });
-  return out;
-};
-
-// Keep one details row per chosen code: add defaults, drop removed codes.
-const syncDetails = (codes, details, defaults) => {
-  Object.keys(details).forEach((code) => {
-    if (!codes.includes(code)) delete details[code];
-  });
-  codes.forEach((code) => {
-    if (!details[code]) details[code] = defaultsFor(defaults, code);
-  });
-};
 
 const hydrate = () => {
   const p = profile.value || {};
