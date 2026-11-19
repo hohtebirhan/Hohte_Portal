@@ -1134,7 +1134,8 @@ const educationsPayload = () =>
       const noField = e.level === "school";
       item.field = noField ? null : nullIfEmpty(e.field);
       item.field_other = noField ? null : nullIfEmpty(e.field_other);
-      item.field_detail = noField ? null : nullIfEmpty((e.field_detail || "").trim());
+      // School (1-12) keeps a detail too (e.g. grade or stream)
+      item.field_detail = nullIfEmpty((e.field_detail || "").trim());
       item.school = nullIfEmpty(e.school);
       item.school_other = nullIfEmpty(e.school_other);
       item.is_current = !!e.is_current;

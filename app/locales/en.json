@@ -326,7 +326,8 @@
       "endDate": "End date",
       "add": "Add education",
       "empty": "No education added yet.",
-      "fieldDetail": "Field detail (optional), e.g. specialisation"
+      "fieldDetail": "Field detail (optional), e.g. specialisation",
+      "schoolDetail": "Detail (optional), e.g. grade or stream"
     },
     "spiritualEducation": {
       "items": "Completed courses",

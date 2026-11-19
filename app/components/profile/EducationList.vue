@@ -66,6 +66,17 @@
           />
         </div>
 
+        <!-- School (1-12): no field of study, but a detail (e.g. grade or stream) -->
+        <div v-else class="entry-field">
+          <input
+            v-model="entry.field_detail"
+            type="text"
+            class="field-detail-input"
+            maxlength="500"
+            :placeholder="t('profile.education.schoolDetail')"
+          />
+        </div>
+
         <div class="entry-field">
           <label class="entry-label">{{ t("profile.education.school") }}</label>
           <OptionSelect
@@ -170,7 +181,6 @@ const setLevel = (entry, value) => {
   if (hasNoField(entry)) {
     entry.field = "";
     entry.field_other = "";
-    entry.field_detail = "";
   }
 };
 
