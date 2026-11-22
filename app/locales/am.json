@@ -240,7 +240,7 @@
     "expand": "ክፈት",
     "collapse": "ዝጋ",
     "notSet": "አልተሞላም",
-    "optional": "አማራጭ",
+    "optional": "ካለ",
     "required": "አስፈላጊ",
     "otherPlaceholder": "መልስዎን ይጻፉ",
     "chooseOption": "ይምረጡ...",
@@ -326,8 +326,8 @@
       "endDate": "የጨረሱበት ቀን",
       "add": "ትምህርት ጨምር",
       "empty": "እስካሁን ምንም ትምህርት አልተጨመረም።",
-      "fieldDetail": "የትምህርት መስኩ ዝርዝር (አማራጭ)፣ ለምሳሌ ልዩ ሙያ",
-      "schoolDetail": "ዝርዝር (አማራጭ)፣ ለምሳሌ ክፍል ወይም የትምህርት ዘርፍ"
+      "fieldDetail": "የትምህርት መስኩ ዝርዝር (ካለ)፣ ለምሳሌ ልዩ ሙያ",
+      "schoolDetail": "ዝርዝር (ካለ)፣ ለምሳሌ ክፍል ወይም የትምህርት ዘርፍ"
     },
     "spiritualEducation": {
       "items": "የተከታተሏቸው ትምህርቶች",
@@ -339,7 +339,7 @@
       "jobTitle": "የሥራ መጠሪያ",
       "occupationRequired": "እባክዎ የሥራ ሁኔታ ይምረጡ።",
       "occupationStatusOther": "የሥራ ሁኔታ (የራስዎን ይጻፉ)",
-      "organization": "ድርጅት (አማራጭ)",
+      "organization": "ድርጅት (ካለ)",
       "jobsHeading": "ሥራዎች",
       "entryTitle": "ሥራ {n}",
       "currentBadge": "የአሁን",
@@ -381,9 +381,19 @@
       "wantsToServe": "በዚህ ማገልገል እፈልጋለሁ",
       "tickOne": "\"ይህ ክህሎት አለኝ\"፣ \"በዚህ ማገልገል እፈልጋለሁ\" ወይም ሁለቱንም ምልክት ያድርጉ።",
       "count": "{n} ዘርፍ",
-      "tickServe": "\"በዚህ ማገልገል እፈልጋለሁ\" የሚለውን ምልክት ያድርጉ።"
+      "tickServe": "\"በዚህ ማገልገል እፈልጋለሁ\" የሚለውን ምልክት ያድርጉ።",
+      "years": "ዓመት",
+      "yearsLabel": "የልምድ ዓመት",
+      "fewerYears": "ዓመት ቀንስ",
+      "moreYears": "ዓመት ጨምር",
+      "typedByYou": "ያከሉት"
     },
-    "detailPlaceholder": "ዝርዝር (አማራጭ)"
+    "detailPlaceholder": "ዝርዝር (ካለ)",
+    "unsaved": {
+      "label": "ያልተቀመጠ",
+      "bar": "ያልተቀመጠ ለውጥ አለ",
+      "leaveConfirm": "ያላስቀመጡት ለውጥ አለ። ሳያስቀምጡ መውጣት ይፈልጋሉ?"
+    }
   },
   "classChange": {
     "title": "የክፍል ለውጥ ጠይቅ",
@@ -402,7 +412,7 @@
     "choice3": "3ኛ ምርጫ",
     "choiceN": "{n}ኛ ምርጫ",
     "chooseDepartment": "ክፍል ይምረጡ",
-    "reasonLabel": "ምክንያት (አማራጭ)",
+    "reasonLabel": "ምክንያት (ካለ)",
     "reasonPlaceholder": "ለምን መቀየር እንደሚፈልጉ ይንገሩን",
     "submit": "ጥያቄ አስገባ",
     "submitting": "በማስገባት ላይ...",

@@ -381,9 +381,19 @@
       "wantsToServe": "I want to serve on this",
       "tickOne": "Tick \"I have this skill\", \"I want to serve on this\", or both.",
       "count": "{n} area(s)",
-      "tickServe": "Tick \"I want to serve on this\"."
+      "tickServe": "Tick \"I want to serve on this\".",
+      "years": "years",
+      "yearsLabel": "Years of experience",
+      "fewerYears": "Fewer years",
+      "moreYears": "More years",
+      "typedByYou": "Added by you"
     },
-    "detailPlaceholder": "Detail (optional)"
+    "detailPlaceholder": "Detail (optional)",
+    "unsaved": {
+      "label": "Not saved",
+      "bar": "You have changes that are not saved",
+      "leaveConfirm": "You have changes that are not saved. Leave without saving?"
+    }
   },
   "classChange": {
     "title": "Request department change",

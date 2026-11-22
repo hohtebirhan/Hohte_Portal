@@ -63,6 +63,7 @@
         :title="t('profile.sections.personal')"
         :summary="personalSummary"
         :dirty="dirty.personal"
+        :unsaved-label="t('profile.unsaved.label')"
         :saving="savingSection === 'personal'"
         :save-label="t('profile.save')"
         :saving-label="t('profile.saving')"
@@ -269,6 +270,7 @@
         :title="t('profile.sections.address')"
         :summary="addressSummary"
         :dirty="dirty.address"
+        :unsaved-label="t('profile.unsaved.label')"
         :saving="savingSection === 'address'"
         :save-label="t('profile.save')"
         :saving-label="t('profile.saving')"
@@ -406,6 +408,7 @@
         :title="t('profile.sections.education')"
         :summary="educationSummary"
         :dirty="dirty.education"
+        :unsaved-label="t('profile.unsaved.label')"
         :saving="savingSection === 'education'"
         :save-label="t('profile.save')"
         :saving-label="t('profile.saving')"
@@ -426,6 +429,7 @@
         :title="t('profile.sections.spiritual_education')"
         :summary="spiritualSummary"
         :dirty="dirty.spiritual_education"
+        :unsaved-label="t('profile.unsaved.label')"
         :saving="savingSection === 'spiritual_education'"
         :save-label="t('profile.save')"
         :saving-label="t('profile.saving')"
@@ -465,6 +469,7 @@
         :title="t('profile.sections.work')"
         :summary="workSummary"
         :dirty="dirty.work"
+        :unsaved-label="t('profile.unsaved.label')"
         :saving="savingSection === 'work'"
         :save-label="t('profile.save')"
         :saving-label="t('profile.saving')"
@@ -519,6 +524,7 @@
         :title="t('profile.sections.skills')"
         :summary="skillsSummary"
         :dirty="dirty.skills"
+        :unsaved-label="t('profile.unsaved.label')"
         :saving="savingSection === 'skills'"
         :save-label="t('profile.save')"
         :saving-label="t('profile.saving')"
@@ -549,6 +555,14 @@
             :with-ticks="true"
             :errors="lastValidationErrors || {}"
             error-prefix="skills.areas"
+          />
+          <OptionDetailsList
+            :codes="form.skills.other"
+            :details="form.skills.otherDetails"
+            :with-ticks="true"
+            :typed="true"
+            :errors="lastValidationErrors || {}"
+            error-prefix="skills.other_entries"
           />
         </div>
 
@@ -613,11 +627,23 @@
       <!-- Change requests -->
       <ChangeRequestsList :items="changeRequests" />
     </div>
+
+    <!-- Sticky reminder while a section has changes that are not saved -->
+    <div v-if="unsavedKeys.length" class="unsaved-bar" role="status">
+      <div class="unsaved-text">
+        <strong>{{ t("profile.unsaved.bar") }}</strong>
+        <span>{{ unsavedKeys.map((k) => t(`profile.sections.${k}`)).join("፣ ") }}</span>
+      </div>
+      <button type="button" class="unsaved-save" :disabled="!!savingSection" @click="saveAllUnsaved">
+        {{ savingSection ? t("profile.saving") : t("profile.save") }}
+      </button>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, watch, nextTick } from "vue";
+import { ref, reactive, computed, onMounted, onBeforeUnmount, watch, nextTick } from "vue";
+import { onBeforeRouteLeave } from "vue-router";
 import { useLanguage } from "~/composables/useLanguage";
 import { useNavigation } from "~/composables/useNavigation";
 import { useToast } from "~/composables/useToast";
@@ -628,6 +654,7 @@ import OptionSelect from "~/components/profile/OptionSelect.vue";
 import OptionMultiSelect from "~/components/profile/OptionMultiSelect.vue";
 import OptionDetailsList from "~/components/profile/OptionDetailsList.vue";
 import { codeOf, codesOf, detailsFrom, syncDetails } from "~/utils/profileDetails";
+import { unsavedSections } from "~/utils/unsavedChanges";
 import { AREAS_WITHOUT_SKILL, areaDefaults, areaMissingTick } from "~/config/profileAreas";
 import PendingBadge from "~/components/profile/PendingBadge.vue";
 import ImportedBanner from "~/components/profile/ImportedBanner.vue";
@@ -706,7 +733,8 @@ const form = reactive({
   skills: {
     items: [], // area codes
     other: [],
-    areaDetails: {}, // { code: { has_skill, wants_to_serve, detail } }
+    areaDetails: {}, // { code: { has_skill, wants_to_serve, detail, years } }
+    otherDetails: {}, // typed-in skills, keyed by their text
     availability: [],
     availabilityDetails: {}, // { code: { detail } }
     service_note: "",
@@ -835,7 +863,13 @@ const hydrate = () => {
   const skills = p.skills || {};
   form.skills.areaDetails = detailsFrom(skills.areas, skills.items, areaDefaults);
   form.skills.items = Object.keys(form.skills.areaDetails);
-  form.skills.other = Array.isArray(skills.other) ? [...skills.other] : [];
+  // Typed-in skills come with ticks, detail and years (other_entries); an
+  // older API only sends their texts (other).
+  const typedEntries = Array.isArray(skills.other_entries)
+    ? skills.other_entries.map((e) => ({ ...e, code: e.text }))
+    : undefined;
+  form.skills.otherDetails = detailsFrom(typedEntries, Array.isArray(skills.other) ? skills.other : [], areaDefaults);
+  form.skills.other = Object.keys(form.skills.otherDetails);
   form.skills.availabilityDetails = detailsFrom(skills.availability_entries, skills.availability, DETAIL_DEFAULTS);
   form.skills.availability = Object.keys(form.skills.availabilityDetails);
   form.skills.service_note = skills.service_note || "";
@@ -862,6 +896,10 @@ watch(
 watch(
   () => [...form.skills.items],
   (codes) => syncDetails(codes, form.skills.areaDetails, areaDefaults),
+);
+watch(
+  () => [...form.skills.other],
+  (texts) => syncDetails(texts, form.skills.otherDetails, areaDefaults),
 );
 watch(
   () => [...form.skills.availability],
@@ -1159,17 +1197,29 @@ const skillsPayload = () => ({
       has_skill: !AREAS_WITHOUT_SKILL.includes(code) && !!d.has_skill,
       wants_to_serve: !!d.wants_to_serve,
       detail: nullIfEmpty((d.detail || "").trim()),
+      years: !AREAS_WITHOUT_SKILL.includes(code) && d.has_skill ? Number(d.years) || 0 : 0,
     };
   }),
   items: [...form.skills.items],
   other: [...form.skills.other],
+  other_entries: form.skills.other.map((text) => {
+    const d = form.skills.otherDetails[text] || areaDefaults(text);
+    return {
+      text,
+      has_skill: !!d.has_skill,
+      wants_to_serve: !!d.wants_to_serve,
+      detail: nullIfEmpty((d.detail || "").trim()),
+      years: d.has_skill ? Number(d.years) || 0 : 0,
+    };
+  }),
   availability_entries: detailEntries(form.skills.availability, form.skills.availabilityDetails),
   availability: [...form.skills.availability],
   service_note: nullIfEmpty(form.skills.service_note),
 });
 
 const areasMissingTick = () =>
-  form.skills.items.some((code) => areaMissingTick(code, form.skills.areaDetails[code]));
+  form.skills.items.some((code) => areaMissingTick(code, form.skills.areaDetails[code])) ||
+  form.skills.other.some((text) => areaMissingTick(text, form.skills.otherDetails[text]));
 
 const runSave = async (
   section, // which card is saving (for the spinner and the error line)
@@ -1224,6 +1274,79 @@ const saveSkills = () => {
 // ------------------------------------------------------------------
 // Confirm profile
 // ------------------------------------------------------------------
+// ------------------------------------------------------------------
+// Unsaved changes: sticky reminder, and a warning before leaving the page
+// or closing the mini-app
+// ------------------------------------------------------------------
+const SECTION_ORDER = ["personal", "address", "education", "spiritual_education", "work", "skills"];
+const unsavedKeys = computed(() => unsavedSections(dirty, SECTION_ORDER));
+const SAVE_BY_SECTION = {
+  personal: savePersonal,
+  address: saveAddress,
+  education: saveEducation,
+  spiritual_education: saveSpiritual,
+  work: saveWork,
+  skills: saveSkills,
+};
+
+// Saves each section with changes in turn; stops at the first one that did
+// not save (its error shows in that section).
+const saveAllUnsaved = async () => {
+  for (const key of [...unsavedKeys.value]) {
+    await SAVE_BY_SECTION[key]();
+    if (dirty[key]) return;
+  }
+};
+
+const telegramApp = () => (typeof window !== "undefined" ? window.Telegram?.WebApp : null);
+
+const confirmLeave = (message) =>
+  new Promise((resolve) => {
+    const app = telegramApp();
+    try {
+      if (app?.initData && app.showConfirm) {
+        app.showConfirm(message, (ok) => resolve(!!ok));
+        return;
+      }
+    } catch (e) {
+      // older Telegram clients: fall back to the browser's dialog
+    }
+    resolve(window.confirm(message));
+  });
+
+onBeforeRouteLeave(() =>
+  unsavedKeys.value.length ? confirmLeave(t("profile.unsaved.leaveConfirm")) : true,
+);
+
+const warnBeforeUnload = (event) => {
+  if (!unsavedKeys.value.length) return;
+  event.preventDefault();
+  event.returnValue = "";
+};
+
+watch(
+  () => unsavedKeys.value.length > 0,
+  (hasUnsaved) => {
+    try {
+      const app = telegramApp();
+      if (hasUnsaved) app?.enableClosingConfirmation?.();
+      else app?.disableClosingConfirmation?.();
+    } catch (e) {
+      // closing confirmation needs Telegram 6.2+
+    }
+  },
+);
+
+onMounted(() => window.addEventListener("beforeunload", warnBeforeUnload));
+onBeforeUnmount(() => {
+  window.removeEventListener("beforeunload", warnBeforeUnload);
+  try {
+    telegramApp()?.disableClosingConfirmation?.();
+  } catch (e) {
+    // nothing to undo
+  }
+});
+
 const onConfirmProfile = async () => {
   try {
     await confirmProfile();
@@ -1272,11 +1395,56 @@ watch(profile, () => {
 </script>
 
 <style scoped>
+.unsaved-bar {
+  position: fixed;
+  left: 12px;
+  right: 12px;
+  bottom: calc(78px + env(safe-area-inset-bottom, 0px));
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px 10px 14px;
+  border-radius: 14px;
+  background: #2b4b8f;
+  border: 1px solid rgba(255, 193, 37, 0.6);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+  max-width: 560px;
+  margin: 0 auto;
+}
+.unsaved-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  font-size: 13px;
+  line-height: 1.35;
+}
+.unsaved-text strong {
+  color: #ffc125;
+}
+.unsaved-text span {
+  color: #a0b3d9;
+}
+.unsaved-save {
+  flex: 0 0 auto;
+  background: #ffc125;
+  color: #1e3971;
+  border: 0;
+  border-radius: 10px;
+  padding: 9px 16px;
+  font-weight: 700;
+  font-size: 14px;
+  font-family: inherit;
+}
+.unsaved-save:disabled {
+  opacity: 0.6;
+}
 .profile-page {
   min-height: 100vh;
   background: linear-gradient(135deg, #1e3971 0%, #0d1f40 100%);
   color: #fff;
-  padding: 20px 16px 110px;
+  padding: 20px 16px 180px;
   font-family:
     "Inter",
     -apple-system,
