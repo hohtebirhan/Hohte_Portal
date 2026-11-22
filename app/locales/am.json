@@ -276,7 +276,7 @@
       "education": "ትምህርት",
       "spiritual_education": "መንፈሳዊ ትምህርት",
       "work": "ሥራ",
-      "skills": "ክህሎትና አገልግሎት",
+      "skills": "ሙያ፣ ክህሎትና አገልግሎት",
       "departments": "የአሁን ክፍሎች"
     },
     "summary": {
@@ -386,7 +386,8 @@
       "yearsLabel": "የልምድ ዓመት",
       "fewerYears": "ዓመት ቀንስ",
       "moreYears": "ዓመት ጨምር",
-      "typedByYou": "ያከሉት"
+      "typedByYou": "ያከሉት",
+      "otherPlaceholder": "በዝርዝሩ የሌለ ሙያ ወይም ክህሎት ይጻፉ"
     },
     "detailPlaceholder": "ዝርዝር (ካለ)",
     "unsaved": {

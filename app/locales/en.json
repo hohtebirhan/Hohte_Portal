@@ -386,7 +386,8 @@
       "yearsLabel": "Years of experience",
       "fewerYears": "Fewer years",
       "moreYears": "More years",
-      "typedByYou": "Added by you"
+      "typedByYou": "Added by you",
+      "otherPlaceholder": "Type a profession or skill that is not in the list"
     },
     "detailPlaceholder": "Detail (optional)",
     "unsaved": {

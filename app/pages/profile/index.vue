@@ -539,7 +539,7 @@
             v-model:other-model-value="form.skills.other"
             :options="optionsList('skill')"
             :placeholder="t('profile.chooseOption')"
-            :other-placeholder="t('profile.otherPlaceholder')"
+            :other-placeholder="t('profile.areas.otherPlaceholder')"
             :add-label="t('profile.addOther')"
             :remove-label="t('profile.removeOther')"
             :max-others="10"
