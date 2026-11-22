@@ -6,12 +6,15 @@
 // sense for them). Same list as ProfileOption::AREAS_WITHOUT_SKILL in the ERP.
 export const AREAS_WITHOUT_SKILL = ["open_to_any_area"];
 
-// A newly chosen area starts as a skill the member has; an area without a
-// skill starts as one they want to serve on.
+// A newly chosen area (listed or typed in) starts with both ticks on and 0
+// years of experience; an area without a skill only wants to serve.
 export const areaDefaults = (code) =>
   AREAS_WITHOUT_SKILL.includes(code)
-    ? { has_skill: false, wants_to_serve: true, detail: "" }
-    : { has_skill: true, wants_to_serve: false, detail: "" };
+    ? { has_skill: false, wants_to_serve: true, detail: "", years: 0 }
+    : { has_skill: true, wants_to_serve: true, detail: "", years: 0 };
+
+// Years of experience a member can enter for a skill.
+export const MAX_YEARS = 60;
 
 // Every area needs "I have this skill", "I want to serve on this", or both;
 // an area without a skill needs "I want to serve on this".

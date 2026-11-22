@@ -29,7 +29,10 @@ export const detailsFrom = (entries, items, defaults) => {
       // Keys come from the defaults object; for areas `defaults` is a
       // function, so read them from the row it returns.
       Object.keys(out[code]).forEach((k) => {
-        if (e[k] !== undefined && e[k] !== null) out[code][k] = k === "detail" ? e[k] : !!e[k];
+        if (e[k] === undefined || e[k] === null) return;
+        if (k === "detail") out[code][k] = e[k];
+        else if (k === "years") out[code][k] = Number(e[k]) || 0;
+        else out[code][k] = !!e[k];
       });
     });
   }

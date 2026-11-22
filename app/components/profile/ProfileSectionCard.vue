@@ -11,7 +11,9 @@
         <p v-if="summary && !expanded" class="section-summary">{{ summary }}</p>
       </div>
       <div class="section-header-right">
-        <span v-if="dirty && !expanded" class="dirty-dot" aria-hidden="true"></span>
+        <span v-if="dirty" class="unsaved-pill">
+          <span class="dirty-dot" aria-hidden="true"></span>{{ unsavedLabel }}
+        </span>
         <svg class="chevron" :class="{ rotated: expanded }" viewBox="0 0 24 24" width="20" height="20">
           <path d="M7 10l5 5 5-5z" fill="currentColor" />
         </svg>
@@ -42,6 +44,7 @@
 
 <script setup>
 import { ref, watch } from 'vue'
+import { shouldCollapseAfterChange } from '~/utils/unsavedChanges'
 
 const props = defineProps({
   title: { type: String, required: true },
@@ -52,6 +55,7 @@ const props = defineProps({
   savingLabel: { type: String, default: 'Saving...' },
   footerError: { type: String, default: '' },
   startExpanded: { type: Boolean, default: false },
+  unsavedLabel: { type: String, default: 'Not saved' },
 })
 
 defineEmits(['save'])
@@ -62,10 +66,12 @@ const toggle = () => {
   expanded.value = !expanded.value
 }
 
+// Close after a save that worked. Undoing a change (typing a letter and
+// deleting it) makes the section clean again but must not close it.
 watch(
-  () => props.dirty,
-  (isDirty, wasDirty) => {
-    if (wasDirty && !isDirty && !props.saving) {
+  () => props.saving,
+  (saving, wasSaving) => {
+    if (shouldCollapseAfterChange({ wasSaving, saving, dirty: props.dirty })) {
       expanded.value = false
     }
   }
@@ -131,6 +137,16 @@ defineExpose({
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.unsaved-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #ffc125;
+  white-space: nowrap;
 }
 
 .dirty-dot {
