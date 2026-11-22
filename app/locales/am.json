@@ -276,7 +276,7 @@
       "education": "ትምህርት",
       "spiritual_education": "መንፈሳዊ ትምህርት",
       "work": "ሥራ",
-      "skills": "ክህሎትና ተገኝነት",
+      "skills": "ክህሎትና አገልግሎት",
       "departments": "የአሁን ክፍሎች"
     },
     "summary": {
@@ -352,7 +352,7 @@
     "skills": {
       "items": "ክህሎቶችና ችሎታዎች",
       "other": "ሌሎች ክህሎቶች (የራስዎን ይጻፉ)",
-      "availability": "ተገኝነት",
+      "availability": "መቼ ማገልገል ይችላሉ?",
       "serviceNote": "እንዴት ማገልገል ይፈልጋሉ?",
       "serviceNotePlaceholder": "በትክክል እንዲያስቀምጡዎ የሚረዳ ማንኛውንም ይንገሩን።"
     },
