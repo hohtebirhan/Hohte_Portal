@@ -255,7 +255,7 @@
     "importedBannerTitle": "እባክዎ መረጃዎን ያረጋግጡ",
     "importedBannerText": "ቢሮው አንዳንድ ዝርዝሮችን ሞልቷል። ያረጋግጡና የተሳሳተውን ያስተካክሉ።",
     "importedBannerConfirm": "ትክክል ነው",
-    "importedBannerEdit": "አርትዕ",
+    "importedBannerEdit": "አስተካክል",
     "importedOfficeNote": "ቢሮው ቀደም ብሎ የመዘገበው: {value}",
     "departmentsReadOnly": "የአገልግሎት ክፍሎችዎ በቢሮ ይተዳደራሉ። ለውጥ ለመጠየቅ የክፍል ለውጥ ጥያቄን ይጠቀሙ።",
     "changeRequestsTitle": "የእኔ የለውጥ ጥያቄዎች",
