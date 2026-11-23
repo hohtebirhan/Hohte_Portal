@@ -3,7 +3,8 @@ import { ref, watch, onMounted } from "vue";
 import enTranslations from "~/locales/en.json";
 import amTranslations from "~/locales/am.json";
 
-const globalLocale = ref("en");
+// Amharic unless the member has picked a language before.
+const globalLocale = ref("am");
 
 export const useLanguage = () => {
   const locale = ref(globalLocale.value); 
@@ -70,7 +71,7 @@ export const useLanguage = () => {
       let savedLang = localStorage.getItem("preferredLanguage");
 
       if (!["en", "am"].includes(savedLang)) {
-        savedLang = "en";
+        savedLang = "am";
       }
 
       console.log(` Initializing language from localStorage: ${savedLang}`);
